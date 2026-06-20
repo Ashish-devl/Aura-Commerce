@@ -1,0 +1,8 @@
+{
+  "name": "Aura Commerce",
+  "description": "A fully functional e-commerce clothing store.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
