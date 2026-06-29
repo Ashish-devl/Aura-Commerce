@@ -26,10 +26,12 @@ export interface CartItem extends Product {
 export interface Order {
   id: string;
   userId: string;
+  userEmail?: string;
+  userName?: string;
   items: { productId: string; name: string; quantity: number; price: number }[];
   totalAmount: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  shippingAddress: any; // simplified
+  shippingAddress: string;
   paymentStatus: 'pending' | 'completed' | 'failed';
   createdAt: number;
 }

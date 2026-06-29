@@ -23,9 +23,14 @@ export default function Layout() {
               {user ? (
                 <>
                   {profile?.role === 'admin' && (
-                    <Link to="/admin" className="text-slate-600 hover:text-black font-medium text-sm transition-colors">
-                      Admin
-                    </Link>
+                    <>
+                      <Link to="/admin" className="text-slate-600 hover:text-black font-medium text-sm transition-colors">
+                        Admin
+                      </Link>
+                      <Link to="/admin/orders" className="text-slate-600 hover:text-black font-medium text-sm transition-colors">
+                        Admin Orders
+                      </Link>
+                    </>
                   )}
                   <Link to="/orders" className="text-slate-600 hover:text-black">
                     <Package className="w-5 h-5" />
@@ -55,10 +60,10 @@ export default function Layout() {
                       </span>
                     )}
                   </Link>
-                  <button onClick={loginWithGoogle} className="flex items-center space-x-2 text-sm font-medium text-slate-600 hover:text-black transition-colors">
+                  <Link to="/login" className="flex items-center space-x-2 text-sm font-medium text-slate-600 hover:text-black transition-colors">
                     <User className="w-5 h-5" />
                     <span className="hidden sm:inline">Sign In</span>
-                  </button>
+                  </Link>
                 </>
               )}
             </div>
@@ -73,6 +78,7 @@ export default function Layout() {
       <footer className="bg-white border-t border-slate-200 py-12 text-center text-sm text-slate-500">
         <div className="max-w-7xl mx-auto px-4">
           <p>© {new Date().getFullYear()} Aura Commerce. All rights reserved.</p>
+          <p className="mt-2 text-slate-400">Developed by Ashish</p>
         </div>
       </footer>
     </div>

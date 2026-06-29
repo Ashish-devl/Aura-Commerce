@@ -3,21 +3,29 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../lib/utils';
 import { Minus, Plus, Trash2, ArrowRight } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 export default function Cart() {
   const { cart, updateQuantity, removeFromCart, totalItems, totalPrice } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
 
   const handleCheckout = async () => {
     if (!user) {
-      alert("Please sign in to checkout.");
+      navigate('/login', { state: { from: location } });
+      return;
+    }
+    if (!name.trim() || !address.trim()) {
+      alert("Please provide your name and delivery address.");
       return;
     }
     setLoading(true);
     try {
+      localStorage.setItem('checkoutData', JSON.stringify({ name, address }));
       const res = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -124,17 +132,43 @@ export default function Cart() {
             <span>{formatCurrency(totalPrice)}</span>
           </div>
           
+          <div className="space-y-4 pt-4 border-t border-slate-200">
+            <h3 className="font-semibold text-slate-900">Delivery Details</h3>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="e.g. John Doe"
+                className="w-full rounded-lg border-slate-200 py-2 px-3 sm:text-sm focus:ring-black focus:border-black"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Delivery Address</label>
+              <textarea
+                required
+                value={address}
+                onChange={e => setAddress(e.target.value)}
+                placeholder="123 Main St, City, Country, ZIP"
+                rows={3}
+                className="w-full rounded-lg border-slate-200 py-2 px-3 sm:text-sm focus:ring-black focus:border-black resize-none"
+              ></textarea>
+            </div>
+          </div>
+          
           <button
             onClick={handleCheckout}
             disabled={loading}
             className="w-full bg-black text-white px-8 py-4 rounded-full font-bold uppercase tracking-wider text-sm hover:bg-slate-800 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Processing...' : 'Checkout'}
+            {loading ? 'Processing...' : !user ? 'Sign in to Checkout' : 'Checkout'}
           </button>
           
           {!user && (
             <p className="text-xs text-center text-slate-500 mt-4">
-              You must be signed in to checkout.
+              You must be signed in to complete your purchase.
             </p>
           )}
         </div>

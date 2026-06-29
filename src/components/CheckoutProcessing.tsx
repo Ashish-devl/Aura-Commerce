@@ -10,11 +10,16 @@ import { CheckCircle2 } from 'lucide-react';
 export default function CheckoutProcessing() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { cart, clearCart, totalPrice } = useCart();
   const [status, setStatus] = React.useState('processing');
 
+  const hasProcessed = React.useRef(false);
+
   useEffect(() => {
+    if (authLoading) return; // Wait until auth state is loaded
+    if (hasProcessed.current) return;
+
     const processOrder = async () => {
       const orderId = searchParams.get('orderId');
       if (!orderId || !user || cart.length === 0) {
@@ -22,19 +27,43 @@ export default function CheckoutProcessing() {
         return;
       }
 
+      hasProcessed.current = true;
+
       try {
+        let name = user.email || 'Customer';
+        let address = 'N/A';
+        const rawData = localStorage.getItem('checkoutData');
+        if (rawData) {
+          const parsed = JSON.parse(rawData);
+          name = parsed.name || name;
+          address = parsed.address || address;
+        }
+
         const orderInfo: Order = {
           id: orderId,
           userId: user.uid,
+          userName: name,
+          userEmail: user.email || '',
           items: cart.map(c => ({ productId: c.id, name: c.name, quantity: c.quantity, price: c.price })),
           totalAmount: totalPrice,
           status: 'pending',
-          shippingAddress: { country: 'US' }, // mocked
+          shippingAddress: address,
           paymentStatus: 'completed',
           createdAt: Date.now()
         };
 
         await setDoc(doc(db, 'orders', orderId), orderInfo);
+        localStorage.removeItem('checkoutData');
+        
+        // Trigger email confirmation
+        if (user.email) {
+          fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: user.email, orderId, totalAmount: totalPrice })
+          }).catch(err => console.error('Failed to trigger email:', err));
+        }
+
         clearCart();
         setStatus('success');
       } catch (err) {
@@ -46,7 +75,7 @@ export default function CheckoutProcessing() {
     if (status === 'processing') {
       processOrder();
     }
-  }, [searchParams, user, cart, clearCart, totalPrice, status]);
+  }, [searchParams, user, cart, clearCart, totalPrice, status, authLoading]);
 
   return (
     <div className="max-w-md mx-auto text-center py-20 space-y-6">

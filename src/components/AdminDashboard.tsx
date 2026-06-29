@@ -5,10 +5,10 @@ import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy,
 import { Product, Order } from '../types';
 import { formatCurrency } from '../lib/utils';
 import { Plus, Trash2, Edit } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function AdminDashboard() {
-  const { profile } = useAuth();
+  const { profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -23,21 +23,26 @@ export default function AdminDashboard() {
   const [stock, setStock] = useState(0);
 
   useEffect(() => {
-    if (profile && profile.role !== 'admin') {
+    if (authLoading) return;
+    
+    if (!profile || profile.role !== 'admin') {
       navigate('/');
       return;
     }
 
-    if (!profile || profile.role !== 'admin') return;
-
     const qProducts = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
     const unsubProducts = onSnapshot(qProducts, (snapshot) => {
       setProducts(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product)));
+    }, (error) => {
+      console.error("Error fetching products:", error);
     });
 
     const qOrders = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
     const unsubOrders = onSnapshot(qOrders, (snapshot) => {
       setOrders(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order)));
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching orders:", error);
       setLoading(false);
     });
 
@@ -45,45 +50,44 @@ export default function AdminDashboard() {
       unsubProducts();
       unsubOrders();
     };
-  }, [profile, navigate]);
+  }, [profile, authLoading, navigate]);
 
   const handleSeedDemoProducts = async () => {
-    const categories = ['T-Shirts', 'Outerwear', 'Sweatshirts', 'Pants', 'Accessories', 'Activewear'];
-    const adjectives = ['Classic', 'Modern', 'Vintage', 'Essential', 'Premium', 'Minimalist', 'Urban', 'Cozy', 'Sleek', 'Casual'];
-    const items = ['Tee', 'Jacket', 'Hoodie', 'Pants', 'Backpack', 'Joggers', 'Sweater', 'Shorts', 'Cap', 'Socks'];
-    const colors = ['Black', 'White', 'Navy', 'Olive', 'Grey', 'Crimson', 'Beige', 'Charcoal', 'Indigo', 'Maroon'];
-    const images = [
-      'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1576871337622-98d48d1cf531?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1517438476312-10d79c077509?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1489987707023-afc82478163a?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1495105787522-5334e3ffa0ef?auto=format&fit=crop&q=80&w=800'
+    const demoTemplates = [
+      { name: "Classic White Tee", category: "T-Shirts", item: "T-Shirt", image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800", price: 1499 },
+      { name: "Urban Winter Jacket", category: "Outerwear", item: "Jacket", image: "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?auto=format&fit=crop&q=80&w=800", price: 4599 },
+      { name: "Essential Grey Hoodie", category: "Sweatshirts", item: "Hoodie", image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=800", price: 2999 },
+      { name: "Premium Blue Denim", category: "Pants", item: "Jeans", image: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800", price: 3499 },
+      { name: "Vintage Leather Backpack", category: "Accessories", item: "Backpack", image: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&q=80&w=800", price: 5999 },
+      { name: "Activewear Running Shorts", category: "Activewear", item: "Shorts", image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=800", price: 1299 },
+      { name: "Casual Striped Sweater", category: "Sweatshirts", item: "Sweater", image: "https://images.unsplash.com/photo-1434389651855-32eab9eeea86?auto=format&fit=crop&q=80&w=800", price: 2499 },
+      { name: "Sleek Black Cap", category: "Accessories", item: "Cap", image: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&q=80&w=800", price: 899 },
+      { name: "Cozy Knit Socks", category: "Accessories", item: "Socks", image: "https://images.unsplash.com/photo-1582966772680-860e372bb558?auto=format&fit=crop&q=80&w=800", price: 499 },
+      { name: "Modern Chino Pants", category: "Pants", item: "Chinos", image: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&q=80&w=800", price: 2799 },
+      { name: "Graphic Print Tee", category: "T-Shirts", item: "T-Shirt", image: "https://images.unsplash.com/photo-1503342394128-c104d54dba01?auto=format&fit=crop&q=80&w=800", price: 1699 },
+      { name: "Windbreaker Pullover", category: "Outerwear", item: "Windbreaker", image: "https://images.unsplash.com/photo-1605518216938-7c31b7b14ad0?auto=format&fit=crop&q=80&w=800", price: 3299 }
     ];
 
     const demoProducts = [];
-    for(let i = 0; i < 50; i++) {
-        const catObj = categories[i % categories.length];
-        const adj = adjectives[i % adjectives.length];
-        const item = items[i % items.length];
-        const color = colors[i % colors.length];
+    // Generate 36 products by cloning the templates and slightly varying them or just duplicating.
+    for(let i = 0; i < 36; i++) {
+        const template = demoTemplates[i % demoTemplates.length];
+        // Add a slight variance to name if it's a duplicate
+        const isDuplicate = i >= demoTemplates.length;
+        const variantSuffix = isDuplicate ? ` (Variant ${Math.floor(i / demoTemplates.length) + 1})` : '';
         
         demoProducts.push({
-            name: `${adj} ${color} ${item}`,
-            description: `A ${adj.toLowerCase()} quality ${color.toLowerCase()} ${item.toLowerCase()} perfect for any occasion. Designed with comfort in mind.`,
-            price: Math.floor(Math.random() * 4000) + 999,
+            name: `${template.name}${variantSuffix}`,
+            description: `A quality ${template.item.toLowerCase()} perfect for any occasion. Designed with comfort in mind.`,
+            price: template.price,
             currency: 'INR',
-            category: catObj,
-            imageUrl: images[i % images.length],
+            category: template.category,
+            imageUrl: template.image,
             stock: Math.floor(Math.random() * 100) + 10,
         });
     }
 
-    if (!window.confirm("Add 50 demo products?")) return;
+    if (!window.confirm("Add demo products?")) return;
     try {
       for (const product of demoProducts) {
         await addDoc(collection(db, 'products'), {
@@ -144,6 +148,14 @@ export default function AdminDashboard() {
     }
   };
 
+  if (authLoading || loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+      </div>
+    );
+  }
+
   if (!profile || profile.role !== 'admin') return null;
 
   return (
@@ -200,14 +212,26 @@ export default function AdminDashboard() {
 
         {/* Orders */}
         <section className="bg-slate-50 p-6 sm:p-8 rounded-2xl">
-          <h2 className="text-xl font-bold tracking-tight mb-6">Recent Orders</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6 border-b border-slate-200 pb-3">
+            <h2 className="text-xl font-bold tracking-tight">Recent Orders</h2>
+            <Link 
+              to="/admin/orders"
+              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              Full Order History &rarr;
+            </Link>
+          </div>
           <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
             {orders.map(order => (
               <div key={order.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
                 <div className="flex justify-between items-start mb-2">
-                  <div>
+                  <div className="space-y-1">
                     <p className="text-xs font-mono text-slate-500">ID: {order.id}</p>
                     <p className="font-semibold">{formatCurrency(order.totalAmount)} • {order.items.length} items</p>
+                    <div className="text-sm">
+                      <span className="font-medium text-slate-800">{order.userName || 'Customer'}</span>
+                      {order.userEmail && <span className="text-slate-500 ml-2 text-xs">({order.userEmail})</span>}
+                    </div>
                   </div>
                   <select 
                     value={order.status}
@@ -221,8 +245,16 @@ export default function AdminDashboard() {
                     <option value="cancelled">Cancelled</option>
                   </select>
                 </div>
-                <div className="text-sm text-slate-600 line-clamp-1">
-                  {order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
+                <div className="mt-2 text-sm text-slate-600 bg-slate-50 p-3 rounded-md">
+                  <p className="font-semibold text-slate-700 text-xs uppercase tracking-wider mb-1">Items</p>
+                  <p className="line-clamp-2 mb-2">{order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}</p>
+                  
+                  {order.shippingAddress && (
+                    <>
+                      <p className="font-semibold text-slate-700 text-xs uppercase tracking-wider mt-3 mb-1">Delivery Address</p>
+                      <p className="whitespace-pre-line">{typeof order.shippingAddress === 'object' ? JSON.stringify(order.shippingAddress) : order.shippingAddress}</p>
+                    </>
+                  )}
                 </div>
               </div>
             ))}

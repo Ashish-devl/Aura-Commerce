@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { 
+  User, 
+  onAuthStateChanged, 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  signOut,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword
+} from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { UserProfile } from '../types';
@@ -8,7 +16,9 @@ interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: (selectedRole?: 'admin' | 'customer') => Promise<void>;
+  signUpWithEmail: (email: string, pass: string, role: 'admin' | 'customer') => Promise<void>;
+  loginWithEmail: (email: string, pass: string, expectedRole?: 'admin' | 'customer') => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -18,6 +28,8 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   loginWithGoogle: async () => {},
+  signUpWithEmail: async () => {},
+  loginWithEmail: async () => {},
   logout: async () => {},
   refreshProfile: async () => {},
 });
@@ -62,7 +74,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return unsub;
   }, []);
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (selectedRole: 'admin' | 'customer' = 'customer') => {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
@@ -72,11 +84,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const docSnap = await getDoc(docRef);
       
       const isAdmin = result.user.email === 'ashishgupta75080@gmail.com';
+      const finalRole = isAdmin ? 'admin' : selectedRole;
       
       if (!docSnap.exists()) {
         const newProfile: Omit<UserProfile, 'id'> = {
           email: result.user.email || '',
-          role: isAdmin ? 'admin' : 'customer',
+          role: finalRole,
           wishlist: [],
           createdAt: Date.now()
         };
@@ -97,6 +110,72 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       console.error("Login failed:", error);
+      throw error;
+    }
+  };
+
+  const signUpWithEmail = async (email: string, pass: string, role: 'admin' | 'customer') => {
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, pass);
+      const docRef = doc(db, 'users', result.user.uid);
+      
+      const isAdmin = email === 'ashishgupta75080@gmail.com';
+      const finalRole = isAdmin ? 'admin' : role;
+
+      const newProfile: Omit<UserProfile, 'id'> = {
+        email: email,
+        role: finalRole,
+        wishlist: [],
+        createdAt: Date.now()
+      };
+      await setDoc(docRef, newProfile);
+      setProfile({ id: result.user.uid, ...newProfile });
+    } catch (error: any) {
+      console.error("Sign up failed:", error);
+      throw error;
+    }
+  };
+
+  const loginWithEmail = async (email: string, pass: string, expectedRole?: 'admin' | 'customer') => {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, pass);
+      
+      // Fetch profile and verify role if expectedRole is passed
+      const docRef = doc(db, 'users', result.user.uid);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const role = data.role;
+        
+        // If user is Ashish, auto upgrade to admin
+        const isAdmin = email === 'ashishgupta75080@gmail.com';
+        const finalRole = isAdmin ? 'admin' : role;
+
+        if (isAdmin && role !== 'admin') {
+          await setDoc(docRef, { role: 'admin' }, { merge: true });
+        }
+
+        if (expectedRole && finalRole !== expectedRole) {
+          throw new Error(`Access Denied: This account is registered as a ${finalRole}, not an ${expectedRole}.`);
+        }
+        
+        setProfile({ id: docSnap.id, ...data, role: finalRole } as UserProfile);
+      } else {
+        // If profile doesn't exist but auth does, create a default profile
+        const finalRole = expectedRole || 'customer';
+        const newProfile: Omit<UserProfile, 'id'> = {
+          email: email,
+          role: finalRole,
+          wishlist: [],
+          createdAt: Date.now()
+        };
+        await setDoc(docRef, newProfile);
+        setProfile({ id: result.user.uid, ...newProfile });
+      }
+    } catch (error: any) {
+      console.error("Login failed:", error);
+      throw error;
     }
   };
 
@@ -105,7 +184,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, loginWithGoogle, logout, refreshProfile: async () => { if(user) await fetchProfile(user) } }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      profile, 
+      loading, 
+      loginWithGoogle, 
+      signUpWithEmail,
+      loginWithEmail,
+      logout, 
+      refreshProfile: async () => { if(user) await fetchProfile(user) } 
+    }}>
       {children}
     </AuthContext.Provider>
   );
