@@ -93,9 +93,26 @@ export default function Signup() {
         </div>
 
         {error && (
-          <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex items-start space-x-3 text-rose-800 text-sm animate-pulse">
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-500" />
-            <span>{error}</span>
+          <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex flex-col space-y-2 text-rose-800 text-sm">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-500" />
+              <span className="font-semibold">
+                {error.includes('auth/operation-not-allowed') || error.includes('operation-not-allowed')
+                  ? 'Email/Password Authentication is not enabled yet.'
+                  : error}
+              </span>
+            </div>
+            {(error.includes('auth/operation-not-allowed') || error.includes('operation-not-allowed')) && (
+              <div className="pl-8 text-xs text-rose-700/90 leading-relaxed space-y-1.5 mt-1 border-t border-rose-200 pt-2">
+                <p className="font-bold">To fix this in your Firebase Project:</p>
+                <ol className="list-decimal pl-4 space-y-1">
+                  <li>Go to your <strong>Firebase Console</strong>.</li>
+                  <li>Open <strong>Authentication</strong> &gt; <strong>Sign-in method</strong>.</li>
+                  <li>Click <strong>Add new provider</strong> and choose <strong>Email/Password</strong>.</li>
+                  <li>Toggle <strong>Enable</strong>, save changes, and try signing in again!</li>
+                </ol>
+              </div>
+            )}
           </div>
         )}
 
