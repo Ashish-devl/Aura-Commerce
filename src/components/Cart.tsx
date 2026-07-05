@@ -7,7 +7,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
 
 export default function Cart() {
-  const { cart, updateQuantity, removeFromCart, totalItems, totalPrice } = useCart();
+  const { cart, updateQuantity, removeFromCart, totalItems, totalPrice, clearCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -81,14 +81,14 @@ export default function Cart() {
     <div className="lg:grid lg:grid-cols-12 gap-12">
       <div className="lg:col-span-8 space-y-8">
         <h1 className="text-3xl font-extrabold tracking-tight">Shopping Bag ({totalItems})</h1>
-        
+
         <div className="space-y-6">
           {cart.map(item => (
             <div key={item.id} className="flex gap-6 border-b border-slate-100 pb-6">
               <Link to={`/product/${item.id}`} className="w-24 h-32 shrink-0 bg-slate-100 rounded-lg overflow-hidden block">
                 <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
               </Link>
-              
+
               <div className="flex-1 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                   <div>
@@ -97,25 +97,25 @@ export default function Cart() {
                   </div>
                   <p className="font-medium">{formatCurrency(item.price, item.currency)}</p>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center border border-slate-200 rounded-full">
-                    <button 
+                    <button
                       onClick={() => updateQuantity(item.id, item.quantity - 1)}
                       className="p-2 text-slate-400 hover:text-black transition-colors"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
                     <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                    <button 
+                    <button
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
                       className="p-2 text-slate-400 hover:text-black transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
-                  
-                  <button 
+
+                  <button
                     onClick={() => removeFromCart(item.id)}
                     className="text-slate-400 hover:text-red-500 transition-colors flex items-center space-x-1 py-2"
                   >
@@ -132,7 +132,7 @@ export default function Cart() {
       <div className="lg:col-span-4 mt-8 lg:mt-0">
         <div className="bg-slate-50 rounded-2xl p-6 md:p-8 space-y-6 sticky top-24">
           <h2 className="text-xl font-bold tracking-tight">Order Summary</h2>
-          
+
           <div className="space-y-3 text-sm text-slate-600">
             <div className="flex justify-between">
               <span>Subtotal</span>
@@ -147,12 +147,12 @@ export default function Cart() {
               <span className="text-slate-900 font-medium whitespace-nowrap">Calculated at checkout</span>
             </div>
           </div>
-          
+
           <div className="border-t border-slate-200 pt-4 flex justify-between items-center text-lg font-bold text-slate-900">
             <span>Total</span>
             <span>{formatCurrency(totalPrice)}</span>
           </div>
-          
+
           <div className="space-y-4 pt-4 border-t border-slate-200">
             <h3 className="font-semibold text-slate-900">Delivery Details</h3>
             <div>
@@ -178,7 +178,7 @@ export default function Cart() {
               ></textarea>
             </div>
           </div>
-          
+
           <button
             onClick={handleCheckout}
             disabled={loading}
@@ -186,7 +186,7 @@ export default function Cart() {
           >
             {loading ? 'Processing...' : !user ? 'Sign in to Checkout' : 'Checkout'}
           </button>
-          
+
           {!user && (
             <p className="text-xs text-center text-slate-500 mt-4">
               You must be signed in to complete your purchase.
