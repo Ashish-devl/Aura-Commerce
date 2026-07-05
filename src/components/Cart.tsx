@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../lib/utils';
 import { Minus, Plus, Trash2, ArrowRight } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { api } from '../lib/api';
 
 export default function Cart() {
   const { cart, updateQuantity, removeFromCart, totalItems, totalPrice } = useCart();
@@ -32,19 +33,32 @@ export default function Cart() {
     }
     setLoading(true);
     try {
-      localStorage.setItem('checkoutData', JSON.stringify({ name, address }));
-      const res = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: cart, currency: 'INR' })
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
+      const orderId = "order_" + Math.random().toString(36).substring(2, 9);
+      const orderInfo = {
+        id: orderId,
+        items: cart.map(c => ({ productId: c.id, name: c.name, quantity: c.quantity, price: c.price })),
+        totalAmount: totalPrice,
+        status: 'pending',
+        shippingAddress: address,
+        paymentStatus: 'completed'
+      };
+
+      await api.createOrder(orderInfo);
+
+      // Trigger email confirmation
+      if (user.email) {
+        fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: user.email, orderId, totalAmount: totalPrice })
+        }).catch(err => console.error('Failed to trigger email:', err));
       }
-    } catch (err) {
+
+      clearCart();
+      navigate(`/checkout/processing?orderId=${orderId}&status=success`);
+    } catch (err: any) {
       console.error(err);
-      alert("Checkout failed.");
+      alert(err.message || "Checkout failed.");
     } finally {
       setLoading(false);
     }
