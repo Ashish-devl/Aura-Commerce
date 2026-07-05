@@ -112,5 +112,24 @@
     "userEmail": "abhi@gmail.com",
     "userName": "Abhi",
     "createdAt": 1783275265749
+  },
+  {
+    "id": "order_zcxp43u",
+    "items": [
+      {
+        "productId": "prod_4",
+        "name": "Premium Blue Denim",
+        "quantity": 2,
+        "price": 3499
+      }
+    ],
+    "totalAmount": 6998,
+    "status": "pending",
+    "shippingAddress": "123",
+    "paymentStatus": "completed",
+    "userId": "user_lssmwnc",
+    "userEmail": "abhi@gmail.com",
+    "userName": "Abhi",
+    "createdAt": 1783275308619
   }
 ]

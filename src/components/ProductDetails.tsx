@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Product, Review } from '../types';
 import { useCart } from '../context/CartContext';
@@ -10,6 +10,7 @@ import { Heart, Star, Trash2 } from 'lucide-react';
 export default function ProductDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, profile, refreshProfile } = useAuth();
   const { addToCart } = useCart();
 
@@ -20,6 +21,12 @@ export default function ProductDetails() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+
+  // Buy Now States
+  const [isBuyNowOpen, setIsBuyNowOpen] = useState(false);
+  const [buyNowName, setBuyNowName] = useState('');
+  const [buyNowAddress, setBuyNowAddress] = useState('');
+  const [buyNowLoading, setBuyNowLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -38,6 +45,67 @@ export default function ProductDetails() {
     };
     fetchData();
   }, [id]);
+
+  // Sync profile name to Buy Now form
+  useEffect(() => {
+    if (user && user.displayName) {
+      setBuyNowName(user.displayName);
+    }
+  }, [user]);
+
+  const handleBuyNowClick = () => {
+    if (!user) {
+      navigate('/login', { state: { from: location } });
+      return;
+    }
+    setIsBuyNowOpen(true);
+  };
+
+  const handleBuyNowSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!buyNowName.trim() || !buyNowAddress.trim()) {
+      alert("Please provide your name and delivery address.");
+      return;
+    }
+    if (!product) return;
+
+    setBuyNowLoading(true);
+    try {
+      const orderId = "order_" + Math.random().toString(36).substring(2, 9);
+      const orderInfo = {
+        id: orderId,
+        items: [{
+          productId: product.id,
+          name: product.name,
+          quantity: 1,
+          price: product.price
+        }],
+        totalAmount: product.price,
+        status: 'pending',
+        shippingAddress: buyNowAddress,
+        paymentStatus: 'completed'
+      };
+
+      await api.createOrder(orderInfo);
+
+      // Trigger email confirmation
+      if (user.email) {
+        fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: user.email, orderId, totalAmount: product.price })
+        }).catch(err => console.error('Failed to trigger email:', err));
+      }
+
+      setIsBuyNowOpen(false);
+      navigate(`/checkout/processing?orderId=${orderId}&status=success`);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Purchase failed.");
+    } finally {
+      setBuyNowLoading(false);
+    }
+  };
 
   const handleAddToCart = () => {
     if (product && product.stock > 0) {
@@ -136,17 +204,24 @@ export default function ProductDetails() {
             </span>
           </div>
 
-          <div className="flex space-x-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <button
               disabled={product.stock <= 0}
               onClick={handleAddToCart}
-              className="flex-1 bg-black text-white px-8 py-4 rounded-full font-bold uppercase tracking-wider text-sm hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 border border-black text-black px-8 py-4 rounded-full font-bold uppercase tracking-wider text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Add to Cart
             </button>
+            <button
+              disabled={product.stock <= 0}
+              onClick={handleBuyNowClick}
+              className="flex-1 bg-black text-white px-8 py-4 rounded-full font-bold uppercase tracking-wider text-sm hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Buy Now
+            </button>
             <button 
               onClick={handleToggleWishlist}
-              className={`p-4 rounded-full border border-slate-200 transition-colors ${isInWishlist ? 'text-red-500 bg-red-50 border-red-100' : 'text-slate-600 hover:text-black hover:border-slate-300'}`}
+              className={`p-4 rounded-full border border-slate-200 transition-colors flex items-center justify-center shrink-0 ${isInWishlist ? 'text-red-500 bg-red-50 border-red-100' : 'text-slate-600 hover:text-black hover:border-slate-300'}`}
             >
               <Heart className={`w-6 h-6 ${isInWishlist ? 'fill-current' : ''}`} />
             </button>
@@ -221,6 +296,68 @@ export default function ProductDetails() {
         </div>
 
       </div>
+
+      {isBuyNowOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full space-y-6 shadow-2xl relative border border-slate-100 text-left">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">Buy Now Checkout</h2>
+              <p className="text-sm text-slate-500">Review your order details and enter shipping address.</p>
+            </div>
+            
+            <div className="bg-slate-50 p-4 rounded-2xl flex items-center space-x-4 border border-slate-150">
+              <img src={product.imageUrl} alt={product.name} className="w-16 h-20 object-cover rounded-lg bg-slate-100" />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-slate-950 truncate text-sm">{product.name}</p>
+                <p className="text-xs text-slate-500 uppercase tracking-widest">{product.category}</p>
+                <p className="font-bold text-slate-900 mt-1 text-sm">{formatCurrency(product.price, product.currency)}</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleBuyNowSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={buyNowName}
+                  onChange={e => setBuyNowName(e.target.value)}
+                  placeholder="e.g. John Doe"
+                  className="w-full rounded-xl border-slate-250 py-2.5 px-3.5 text-sm focus:ring-black focus:border-black bg-slate-50 focus:bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Delivery Address</label>
+                <textarea
+                  required
+                  value={buyNowAddress}
+                  onChange={e => setBuyNowAddress(e.target.value)}
+                  placeholder="123 Main St, City, Country, ZIP"
+                  rows={3}
+                  className="w-full rounded-xl border-slate-250 py-2.5 px-3.5 text-sm focus:ring-black focus:border-black resize-none bg-slate-50 focus:bg-white"
+                ></textarea>
+              </div>
+
+              <div className="flex space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBuyNowOpen(false)}
+                  className="flex-1 border border-slate-200 hover:bg-slate-50 py-3 rounded-full font-bold text-xs uppercase tracking-wider transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={buyNowLoading}
+                  className="flex-1 bg-black hover:bg-slate-800 text-white py-3 rounded-full font-bold text-xs uppercase tracking-wider transition-colors disabled:opacity-50"
+                >
+                  {buyNowLoading ? 'Placing Order...' : 'Place Order'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
