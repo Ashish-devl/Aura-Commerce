@@ -1,26 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../lib/firebase';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { api } from '../lib/api';
 import { Product, Order } from '../types';
 import { formatCurrency } from '../lib/utils';
-import { Plus, Trash2, Edit } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { Plus, Trash2, Edit3, ShoppingBag, TrendingUp, Users, DollarSign, Package, Eye, ArrowLeft, RefreshCw, Layers } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // New product form
+  // Form states
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
-  const [price, setPrice] = useState(0);
+  const [price, setPrice] = useState<number>(0);
   const [category, setCategory] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [stock, setStock] = useState(0);
+  const [stock, setStock] = useState<number>(0);
 
   useEffect(() => {
     if (authLoading) return;
@@ -30,75 +30,36 @@ export default function AdminDashboard() {
       return;
     }
 
-    const qProducts = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
-    const unsubProducts = onSnapshot(qProducts, (snapshot) => {
-      setProducts(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product)));
-    }, (error) => {
-      console.error("Error fetching products:", error);
-    });
-
-    const qOrders = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-    const unsubOrders = onSnapshot(qOrders, (snapshot) => {
-      setOrders(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order)));
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching orders:", error);
-      setLoading(false);
-    });
-
-    return () => {
-      unsubProducts();
-      unsubOrders();
+    const fetchData = async () => {
+      try {
+        const [prodList, orderList] = await Promise.all([
+          api.getProducts(),
+          api.getOrders()
+        ]);
+        setProducts(prodList);
+        setOrders(orderList);
+      } catch (err) {
+        console.error("Error fetching admin dashboard data:", err);
+      } finally {
+        setLoading(false);
+      }
     };
+
+    fetchData();
   }, [profile, authLoading, navigate]);
 
   const handleSeedDemoProducts = async () => {
-    const demoTemplates = [
-      { name: "Classic White Tee", category: "T-Shirts", item: "T-Shirt", image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800", price: 1499 },
-      { name: "Urban Winter Jacket", category: "Outerwear", item: "Jacket", image: "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?auto=format&fit=crop&q=80&w=800", price: 4599 },
-      { name: "Essential Grey Hoodie", category: "Sweatshirts", item: "Hoodie", image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=800", price: 2999 },
-      { name: "Premium Blue Denim", category: "Pants", item: "Jeans", image: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800", price: 3499 },
-      { name: "Vintage Leather Backpack", category: "Accessories", item: "Backpack", image: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&q=80&w=800", price: 5999 },
-      { name: "Activewear Running Shorts", category: "Activewear", item: "Shorts", image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=800", price: 1299 },
-      { name: "Casual Striped Sweater", category: "Sweatshirts", item: "Sweater", image: "https://images.unsplash.com/photo-1434389651855-32eab9eeea86?auto=format&fit=crop&q=80&w=800", price: 2499 },
-      { name: "Sleek Black Cap", category: "Accessories", item: "Cap", image: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&q=80&w=800", price: 899 },
-      { name: "Cozy Knit Socks", category: "Accessories", item: "Socks", image: "https://images.unsplash.com/photo-1582966772680-860e372bb558?auto=format&fit=crop&q=80&w=800", price: 499 },
-      { name: "Modern Chino Pants", category: "Pants", item: "Chinos", image: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&q=80&w=800", price: 2799 },
-      { name: "Graphic Print Tee", category: "T-Shirts", item: "T-Shirt", image: "https://images.unsplash.com/photo-1503342394128-c104d54dba01?auto=format&fit=crop&q=80&w=800", price: 1699 },
-      { name: "Windbreaker Pullover", category: "Outerwear", item: "Windbreaker", image: "https://images.unsplash.com/photo-1605518216938-7c31b7b14ad0?auto=format&fit=crop&q=80&w=800", price: 3299 }
-    ];
-
-    const demoProducts = [];
-    // Generate 36 products by cloning the templates and slightly varying them or just duplicating.
-    for(let i = 0; i < 36; i++) {
-        const template = demoTemplates[i % demoTemplates.length];
-        // Add a slight variance to name if it's a duplicate
-        const isDuplicate = i >= demoTemplates.length;
-        const variantSuffix = isDuplicate ? ` (Variant ${Math.floor(i / demoTemplates.length) + 1})` : '';
-        
-        demoProducts.push({
-            name: `${template.name}${variantSuffix}`,
-            description: `A quality ${template.item.toLowerCase()} perfect for any occasion. Designed with comfort in mind.`,
-            price: template.price,
-            currency: 'INR',
-            category: template.category,
-            imageUrl: template.image,
-            stock: Math.floor(Math.random() * 100) + 10,
-        });
-    }
-
     if (!window.confirm("Add demo products?")) return;
+    setLoading(true);
     try {
-      for (const product of demoProducts) {
-        await addDoc(collection(db, 'products'), {
-          ...product,
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        });
-      }
+      await api.seedProducts();
+      const prodList = await api.getProducts();
+      setProducts(prodList);
     } catch (err) {
       console.error(err);
       alert("Failed to add demo products.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -109,14 +70,12 @@ export default function AdminDashboard() {
         name,
         description: desc,
         price,
-        currency: 'INR',
         category,
         imageUrl,
-        stock,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
+        stock
       };
-      await addDoc(collection(db, 'products'), data);
+      const newProd = await api.addProduct(data);
+      setProducts([newProd, ...products]);
       setName(''); setDesc(''); setPrice(0); setCategory(''); setImageUrl(''); setStock(0);
     } catch (err) {
       console.error(err);
@@ -126,7 +85,8 @@ export default function AdminDashboard() {
   const handleDeleteProduct = async (id: string) => {
     if (!window.confirm("Delete this product?")) return;
     try {
-      await deleteDoc(doc(db, 'products', id));
+      await api.deleteProduct(id);
+      setProducts(products.filter(p => p.id !== id));
     } catch(err) {
       console.error(err);
     }
@@ -134,7 +94,8 @@ export default function AdminDashboard() {
 
   const handleUpdateStock = async (id: string, newStock: number) => {
     try {
-      await updateDoc(doc(db, 'products', id), { stock: newStock, updatedAt: Date.now() });
+      const updated = await api.updateProduct(id, { stock: newStock });
+      setProducts(products.map(p => p.id === id ? updated : p));
     } catch (err) {
       console.error(err);
     }
@@ -142,7 +103,8 @@ export default function AdminDashboard() {
 
   const handleUpdateOrderStatus = async (id: string, status: string) => {
     try {
-      await updateDoc(doc(db, 'orders', id), { status });
+      const updated = await api.updateOrderStatus(id, status);
+      setOrders(orders.map(o => o.id === id ? updated : o));
     } catch (err) {
       console.error(err);
     }

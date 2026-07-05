@@ -1,0 +1,21 @@
+[
+  {
+    "id": "order_w6nzc0l",
+    "userId": "user_lssmwnc",
+    "userName": "Abhi",
+    "userEmail": "abhi@gmail.com",
+    "items": [
+      {
+        "productId": "prod_1",
+        "name": "Classic White Tee",
+        "quantity": 2,
+        "price": 1499
+      }
+    ],
+    "totalAmount": 2998,
+    "status": "pending",
+    "shippingAddress": "123 main street \n",
+    "paymentStatus": "completed",
+    "createdAt": 1783274723918
+  }
+]

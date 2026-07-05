@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../lib/firebase';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { api } from '../lib/api';
 import { Product } from '../types';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '../lib/utils';
@@ -22,9 +21,8 @@ export default function Wishlist() {
 
     const fetchWishlist = async () => {
       try {
-        const productPromises = profile.wishlist.map(id => getDoc(doc(db, 'products', id)));
-        const docs = await Promise.all(productPromises);
-        setProducts(docs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() } as Product)));
+        const data = await api.getWishlist();
+        setProducts(data);
       } catch (err) {
         console.error(err);
       } finally {
@@ -38,7 +36,7 @@ export default function Wishlist() {
     if (!user || !profile) return;
     try {
       const newWishlist = profile.wishlist.filter(id => id !== productId);
-      await updateDoc(doc(db, 'users', user.uid), { wishlist: newWishlist });
+      await api.updateWishlist(newWishlist);
       setProducts(products.filter(p => p.id !== productId));
       await refreshProfile();
     } catch (err) {

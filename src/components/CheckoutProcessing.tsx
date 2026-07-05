@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { Order } from '../types';
@@ -52,7 +51,7 @@ export default function CheckoutProcessing() {
           createdAt: Date.now()
         };
 
-        await setDoc(doc(db, 'orders', orderId), orderInfo);
+        await api.createOrder(orderInfo);
         localStorage.removeItem('checkoutData');
         
         // Trigger email confirmation

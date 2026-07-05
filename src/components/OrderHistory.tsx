@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { api } from '../lib/api';
 import { Order } from '../types';
 import { formatCurrency } from '../lib/utils';
 import { Package } from 'lucide-react';
@@ -16,13 +15,8 @@ export default function OrderHistory() {
     if (!user) return;
     const fetchOrders = async () => {
       try {
-        const q = query(
-          collection(db, 'orders'),
-          where('userId', '==', user.uid),
-          orderBy('createdAt', 'desc')
-        );
-        const snapshot = await getDocs(q);
-        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
+        const data = await api.getOrders();
+        setOrders(data);
       } catch (err) {
         console.error("Error fetching orders:", err);
       } finally {

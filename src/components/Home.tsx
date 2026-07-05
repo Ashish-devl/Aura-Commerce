@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { api } from '../lib/api';
 import { Product } from '../types';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '../lib/utils';
@@ -14,17 +13,15 @@ export default function Home() {
   const [category, setCategory] = useState('All');
 
   useEffect(() => {
-    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      setProducts(data);
-      setLoading(false);
-    }, (err) => {
-      console.error("Failed to fetch products:", err);
-      setLoading(false);
-    });
-    
-    return () => unsubscribe();
+    api.getProducts()
+      .then((data) => {
+        setProducts(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch products:", err);
+        setLoading(false);
+      });
   }, []);
 
   const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))];

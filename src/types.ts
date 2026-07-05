@@ -1,5 +1,6 @@
 export interface UserProfile {
-  id: string; // Firebase Auth UID
+  id: string; // User ID
+  name: string; // User's name
   email: string;
   role: 'admin' | 'customer';
   wishlist: string[]; // array of productIds

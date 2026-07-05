@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { api } from '../lib/api';
 import { Product, Review } from '../types';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -26,14 +25,11 @@ export default function ProductDetails() {
     if (!id) return;
     const fetchData = async () => {
       try {
-        const pDoc = await getDoc(doc(db, 'products', id));
-        if (pDoc.exists()) {
-          setProduct({ id: pDoc.id, ...pDoc.data() } as Product);
-        }
+        const p = await api.getProduct(id);
+        setProduct(p);
 
-        const q = query(collection(db, 'reviews'), where('productId', '==', id));
-        const rDocs = await getDocs(q);
-        setReviews(rDocs.docs.map(d => ({ id: d.id, ...d.data() } as Review)).sort((a,b) => b.createdAt - a.createdAt));
+        const r = await api.getReviews(id);
+        setReviews(r);
       } catch (err) {
         console.error(err);
       } finally {
@@ -61,7 +57,7 @@ export default function ProductDetails() {
         ? profile.wishlist.filter(wId => wId !== id)
         : [...(profile.wishlist || []), id];
       
-      await updateDoc(doc(db, 'users', user.uid), { wishlist: newWishlist });
+      await api.updateWishlist(newWishlist);
       await refreshProfile();
     } catch (err) {
       console.error(err);
@@ -73,16 +69,12 @@ export default function ProductDetails() {
     if (!user || !id) return;
     setSubmittingReview(true);
     try {
-      const data = {
+      const newReview = await api.addReview({
         productId: id,
-        userId: user.uid,
-        userName: user.displayName || user.email?.split('@')[0] || 'User',
         rating: reviewRating,
-        comment: reviewComment,
-        createdAt: Date.now()
-      };
-      const rRef = await addDoc(collection(db, 'reviews'), data);
-      setReviews([{ id: rRef.id, ...data } as Review, ...reviews]);
+        comment: reviewComment
+      });
+      setReviews([newReview, ...reviews]);
       setReviewComment('');
       setReviewRating(5);
     } catch (err) {
@@ -94,7 +86,7 @@ export default function ProductDetails() {
 
   const handleDeleteReview = async (reviewId: string) => {
     try {
-      await deleteDoc(doc(db, 'reviews', reviewId));
+      await api.deleteReview(reviewId);
       setReviews(reviews.filter(r => r.id !== reviewId));
     } catch (err) {
       console.error(err);

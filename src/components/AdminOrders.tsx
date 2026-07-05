@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../lib/firebase';
-import { collection, query, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import { api } from '../lib/api';
 import { Order } from '../types';
 import { formatCurrency } from '../lib/utils';
 import { useNavigate, Link } from 'react-router-dom';
@@ -27,25 +26,26 @@ export default function AdminOrders() {
       return;
     }
 
-    // Real-time subscription to orders
-    const qOrders = query(collection(db, 'orders'), orderBy('createdAt', sortOrder));
-    const unsubOrders = onSnapshot(qOrders, (snapshot) => {
-      const fetchedOrders = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order));
-      setOrders(fetchedOrders);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching orders:", error);
-      setLoading(false);
-    });
-
-    return () => {
-      unsubOrders();
+    const fetchOrders = async () => {
+      try {
+        const data = await api.getOrders();
+        setOrders(data);
+      } catch (err) {
+        console.error("Error fetching orders:", err);
+      } finally {
+        setLoading(false);
+      }
     };
-  }, [profile, authLoading, navigate, sortOrder]);
+    fetchOrders();
+  }, [profile, authLoading, navigate]);
 
   const handleUpdateOrderStatus = async (id: string, status: string) => {
     try {
-      await updateDoc(doc(db, 'orders', id), { status });
+      const updated = await api.updateOrderStatus(id, status);
+      setOrders(orders.map(o => o.id === id ? updated : o));
+      if (selectedOrder?.id === id) {
+        setSelectedOrder(updated);
+      }
     } catch (err) {
       console.error("Error updating order status:", err);
     }
@@ -55,8 +55,12 @@ export default function AdminOrders() {
     setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
   };
 
-  // Client side filtering for search & status (while preserving sorting from Firestore or sorting locally)
-  const filteredOrders = orders.filter(order => {
+  // Client side sorting and filtering
+  const sortedOrders = [...orders].sort((a, b) => {
+    return sortOrder === 'desc' ? b.createdAt - a.createdAt : a.createdAt - b.createdAt;
+  });
+
+  const filteredOrders = sortedOrders.filter(order => {
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     
     const searchLower = searchQuery.toLowerCase();
