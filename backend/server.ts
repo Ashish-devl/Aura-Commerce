@@ -13,6 +13,14 @@ import {
   hashPassword 
 } from './db';
 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
+
 async function startServer() {
   // Initialize file-based local database
   initDB();
