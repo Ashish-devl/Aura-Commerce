@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { UserProfile, Product, Order, Review } from '../src/types';
+import { UserProfile, Product, Order, Review } from './types';
 
 // Native Password Hashing Helpers using Node.js crypto
 export function hashPassword(password: string): string {

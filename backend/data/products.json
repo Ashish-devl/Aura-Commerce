@@ -43,9 +43,9 @@
     "currency": "INR",
     "category": "Pants",
     "imageUrl": "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800",
-    "stock": 99,
+    "stock": 98,
     "createdAt": 1783155707447,
-    "updatedAt": 1783275308617
+    "updatedAt": 1783275498763
   },
   {
     "id": "prod_5",

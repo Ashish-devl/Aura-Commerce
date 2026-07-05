@@ -1,6 +1,5 @@
 import express from 'express';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import { 
   initDB, 
   verifyToken, 
@@ -12,7 +11,7 @@ import {
   generateToken, 
   verifyPassword, 
   hashPassword 
-} from './server/db';
+} from './db';
 
 async function startServer() {
   // Initialize file-based local database
@@ -353,15 +352,9 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
+  // In production, serve the frontend static files
+  if (process.env.NODE_ENV === 'production') {
+    const distPath = path.join(process.cwd(), '../frontend/dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
