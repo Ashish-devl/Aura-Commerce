@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "aura-commerce-root": "file:..",
-    "dotenv": "^17.2.3",
     "express": "^4.21.2"
   },
   "devDependencies": {

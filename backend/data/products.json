@@ -67,9 +67,9 @@
     "currency": "INR",
     "category": "Activewear",
     "imageUrl": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=800",
-    "stock": 106,
+    "stock": 105,
     "createdAt": 1783162907449,
-    "updatedAt": 1783274507449
+    "updatedAt": 1783276282746
   },
   {
     "id": "prod_7",
