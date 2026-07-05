@@ -5,6 +5,7 @@ export interface UserProfile {
   role: 'admin' | 'customer';
   wishlist: string[];
   createdAt: number;
+  address?: string;
 }
 
 export interface Product {

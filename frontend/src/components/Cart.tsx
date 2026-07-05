@@ -8,19 +8,23 @@ import { api } from '../lib/api';
 
 export default function Cart() {
   const { cart, updateQuantity, removeFromCart, totalItems, totalPrice, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, profile, updateAddress: updateDefaultAddress } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
 
-  // Automatically pre-populate customer name from their sign-up profile
+  // Automatically pre-populate customer name and address from their profile
   useEffect(() => {
     if (user && user.displayName) {
       setName(user.displayName);
     }
-  }, [user]);
+    if (profile && profile.address) {
+      setAddress(profile.address);
+    }
+  }, [user, profile]);
 
   const handleCheckout = async () => {
     if (!user) {
@@ -44,6 +48,11 @@ export default function Cart() {
       };
 
       await api.createOrder(orderInfo);
+
+      // Save address as default if user checked the checkbox
+      if (saveAsDefault) {
+        await updateDefaultAddress(address);
+      }
 
       // Trigger email confirmation
       if (user.email) {
@@ -177,6 +186,20 @@ export default function Cart() {
                 className="w-full rounded-lg border-slate-200 py-2 px-3 sm:text-sm focus:ring-black focus:border-black resize-none"
               ></textarea>
             </div>
+            {user && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="saveAsDefault"
+                  checked={saveAsDefault}
+                  onChange={e => setSaveAsDefault(e.target.checked)}
+                  className="rounded border-slate-300 text-black focus:ring-black h-4 w-4"
+                />
+                <label htmlFor="saveAsDefault" className="text-xs font-medium text-slate-500 hover:text-black cursor-pointer select-none">
+                  Save as default delivery address
+                </label>
+              </div>
+            )}
           </div>
 
           <button

@@ -17,6 +17,7 @@ interface AuthContextType {
   loginAsDemo: (role: 'admin' | 'customer') => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateAddress: (address: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -28,6 +29,7 @@ const AuthContext = createContext<AuthContextType>({
   loginAsDemo: async () => {},
   logout: async () => {},
   refreshProfile: async () => {},
+  updateAddress: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -137,6 +139,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const updateAddress = async (newAddress: string) => {
+    try {
+      const updatedProfile = await api.updateProfile(undefined, newAddress);
+      setProfile(updatedProfile);
+    } catch (error) {
+      console.error("Failed to update default address:", error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -146,7 +158,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       loginWithEmail,
       loginAsDemo,
       logout, 
-      refreshProfile
+      refreshProfile,
+      updateAddress
     }}>
       {children}
     </AuthContext.Provider>

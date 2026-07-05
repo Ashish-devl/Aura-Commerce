@@ -44,6 +44,15 @@ export const api = {
     return handleResponse<UserProfile>(res);
   },
 
+  async updateProfile(name?: string, address?: string) {
+    const res = await fetch('/api/auth/profile/update', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ name, address })
+    });
+    return handleResponse<UserProfile>(res);
+  },
+
   async updateWishlist(wishlist: string[]) {
     const res = await fetch('/api/auth/wishlist', {
       method: 'POST',

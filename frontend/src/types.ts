@@ -5,6 +5,7 @@ export interface UserProfile {
   role: 'admin' | 'customer';
   wishlist: string[]; // array of productIds
   createdAt: number;
+  address?: string; // default delivery address
 }
 
 export interface Product {

@@ -11,7 +11,7 @@ export default function ProductDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, updateAddress: updateDefaultAddress } = useAuth();
   const { addToCart } = useCart();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -27,6 +27,7 @@ export default function ProductDetails() {
   const [buyNowName, setBuyNowName] = useState('');
   const [buyNowAddress, setBuyNowAddress] = useState('');
   const [buyNowLoading, setBuyNowLoading] = useState(false);
+  const [buyNowSaveAsDefault, setBuyNowSaveAsDefault] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -46,12 +47,15 @@ export default function ProductDetails() {
     fetchData();
   }, [id]);
 
-  // Sync profile name to Buy Now form
+  // Sync profile name and address to Buy Now form
   useEffect(() => {
     if (user && user.displayName) {
       setBuyNowName(user.displayName);
     }
-  }, [user]);
+    if (profile && profile.address) {
+      setBuyNowAddress(profile.address);
+    }
+  }, [user, profile]);
 
   const handleBuyNowClick = () => {
     if (!user) {
@@ -87,6 +91,11 @@ export default function ProductDetails() {
       };
 
       await api.createOrder(orderInfo);
+
+      // Save default address if checked
+      if (buyNowSaveAsDefault) {
+        await updateDefaultAddress(buyNowAddress);
+      }
 
       // Trigger email confirmation
       if (user.email) {
@@ -337,6 +346,20 @@ export default function ProductDetails() {
                   className="w-full rounded-xl border-slate-250 py-2.5 px-3.5 text-sm focus:ring-black focus:border-black resize-none bg-slate-50 focus:bg-white"
                 ></textarea>
               </div>
+              {user && (
+                <div className="flex items-center space-x-2 pt-1">
+                  <input
+                    type="checkbox"
+                    id="buyNowSaveAsDefault"
+                    checked={buyNowSaveAsDefault}
+                    onChange={e => setBuyNowSaveAsDefault(e.target.checked)}
+                    className="rounded border-slate-300 text-black focus:ring-black h-4 w-4"
+                  />
+                  <label htmlFor="buyNowSaveAsDefault" className="text-xs font-medium text-slate-500 hover:text-black cursor-pointer select-none">
+                    Save as default delivery address
+                  </label>
+                </div>
+              )}
 
               <div className="flex space-x-3 pt-2">
                 <button

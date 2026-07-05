@@ -114,6 +114,7 @@ async function startServer() {
         name: user.name,
         email: user.email,
         role: user.role,
+        address: user.address || '',
         wishlist: user.wishlist || [],
         createdAt: user.createdAt
       }
@@ -129,8 +130,29 @@ async function startServer() {
       name: user.name,
       email: user.email,
       role: user.role,
+      address: user.address || '',
       wishlist: user.wishlist || [],
       createdAt: user.createdAt
+    });
+  });
+
+  app.post('/api/auth/profile/update', authenticateToken, (req, res) => {
+    const { name, address } = req.body;
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (address !== undefined) updateData.address = address;
+
+    const updated = dbUsers.update(req.user.id, updateData);
+    if (!updated) return res.status(404).json({ error: 'User profile not found.' });
+
+    res.json({
+      id: updated.id,
+      name: updated.name,
+      email: updated.email,
+      role: updated.role,
+      address: updated.address || '',
+      wishlist: updated.wishlist || [],
+      createdAt: updated.createdAt
     });
   });
 
