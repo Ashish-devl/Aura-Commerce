@@ -14,7 +14,6 @@ interface AuthContextType {
   loading: boolean;
   signUpWithEmail: (name: string, email: string, pass: string, role: 'admin' | 'customer') => Promise<void>;
   loginWithEmail: (email: string, pass: string, expectedRole?: 'admin' | 'customer') => Promise<void>;
-  loginAsDemo: (role: 'admin' | 'customer') => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateAddress: (address: string) => Promise<void>;
@@ -26,7 +25,6 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signUpWithEmail: async () => {},
   loginWithEmail: async () => {},
-  loginAsDemo: async () => {},
   logout: async () => {},
   refreshProfile: async () => {},
   updateAddress: async () => {},
@@ -107,16 +105,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const loginAsDemo = async (role: 'admin' | 'customer') => {
-    try {
-      const email = role === 'admin' ? 'admin@aura.demo' : 'customer@aura.demo';
-      const password = role === 'admin' ? 'admin123' : 'customer123';
-      await loginWithEmail(email, password, role);
-    } catch (error: any) {
-      console.error("Demo login failed:", error);
-      throw error;
-    }
-  };
+
 
   const logout = async () => {
     localStorage.removeItem('aura_jwt_token');
@@ -156,7 +145,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       loading, 
       signUpWithEmail,
       loginWithEmail,
-      loginAsDemo,
       logout, 
       refreshProfile,
       updateAddress

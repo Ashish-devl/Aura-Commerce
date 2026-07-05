@@ -4,7 +4,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Mail, Lock, User, Shield, ArrowRight, AlertCircle } from 'lucide-react';
 
 export default function Login() {
-  const { loginWithEmail, loginAsDemo } = useAuth();
+  const { loginWithEmail } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -35,18 +35,7 @@ export default function Login() {
     }
   };
 
-  const handleDemoLogin = async (selectedRole: 'admin' | 'customer') => {
-    setLoading(true);
-    setError(null);
-    try {
-      await loginAsDemo(selectedRole);
-      navigate(from, { replace: true });
-    } catch (err: any) {
-      setError(err.message || 'Demo login failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-50">
@@ -152,38 +141,7 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="relative flex items-center justify-center my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200"></div>
-          </div>
-          <span className="relative px-4 bg-white text-xs font-bold text-slate-400 uppercase tracking-widest">
-            or use demo account
-          </span>
-        </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          {/* Quick Access Demo Customer Option */}
-          <button
-            type="button"
-            onClick={() => handleDemoLogin('customer')}
-            disabled={loading}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-800 py-3.5 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center space-x-2 active:scale-[0.98]"
-          >
-            <User className="w-4 h-4" />
-            <span>Demo Customer</span>
-          </button>
-
-          {/* Quick Access Demo Admin Option */}
-          <button
-            type="button"
-            onClick={() => handleDemoLogin('admin')}
-            disabled={loading}
-            className="bg-amber-600 hover:bg-amber-700 text-white py-3.5 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-amber-100 flex items-center justify-center space-x-2 active:scale-[0.98]"
-          >
-            <Shield className="w-4 h-4" />
-            <span>Demo Admin</span>
-          </button>
-        </div>
 
         <div className="text-center pt-2">
           <p className="text-sm text-slate-500 font-medium">

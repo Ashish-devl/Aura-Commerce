@@ -33,6 +33,7 @@
     "role": "customer",
     "wishlist": [],
     "createdAt": 1783274684064,
-    "passwordHash": "d0e5debdf00a3d0d4a519ed2f2ea67b7:b0a6482ab24b6f61a9d9fd58b06d297fd286928725e01c47f47017ea1280ccbe3243784fec78ee19593132f5ba7b92b270ba8b955ddb5d0577cb3c2512b1ea67"
+    "passwordHash": "d0e5debdf00a3d0d4a519ed2f2ea67b7:b0a6482ab24b6f61a9d9fd58b06d297fd286928725e01c47f47017ea1280ccbe3243784fec78ee19593132f5ba7b92b270ba8b955ddb5d0577cb3c2512b1ea67",
+    "address": "123 Main street"
   }
 ]

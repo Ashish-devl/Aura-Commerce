@@ -207,5 +207,24 @@
     "userEmail": "abhi@gmail.com",
     "userName": "Abhi",
     "createdAt": 1783276828547
+  },
+  {
+    "id": "order_q6npk0d",
+    "items": [
+      {
+        "productId": "prod_3",
+        "name": "Essential Grey Hoodie",
+        "quantity": 1,
+        "price": 2999
+      }
+    ],
+    "totalAmount": 2999,
+    "status": "pending",
+    "shippingAddress": "123 Main street",
+    "paymentStatus": "completed",
+    "userId": "user_lssmwnc",
+    "userEmail": "abhi@gmail.com",
+    "userName": "Abhi",
+    "createdAt": 1783277050557
   }
 ]
