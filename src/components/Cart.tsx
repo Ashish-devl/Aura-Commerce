@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../lib/utils';
@@ -13,6 +13,13 @@ export default function Cart() {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+
+  // Automatically pre-populate customer name from their sign-up profile
+  useEffect(() => {
+    if (user && user.displayName) {
+      setName(user.displayName);
+    }
+  }, [user]);
 
   const handleCheckout = async () => {
     if (!user) {
