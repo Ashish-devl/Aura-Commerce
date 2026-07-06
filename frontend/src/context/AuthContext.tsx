@@ -89,7 +89,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Verify role requirements
       if (expectedRole === 'admin' && data.user.role !== 'admin') {
-        throw new Error(`Access Denied: This account is registered as a ${data.user.role}, not an admin.`);
+        throw new Error('Invalid email or password.');
+      }
+      if (expectedRole === 'customer' && data.user.role !== 'customer') {
+        throw new Error('Invalid email or password.');
       }
       
       localStorage.setItem('aura_jwt_token', data.token);
