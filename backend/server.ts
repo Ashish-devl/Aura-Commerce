@@ -12,6 +12,7 @@ import {
   verifyPassword, 
   hashPassword 
 } from './db';
+import { Product } from './types';
 
 declare global {
   namespace Express {
@@ -21,9 +22,14 @@ declare global {
   }
 }
 
+// Simple wrapper to catch errors in async route handlers and forward them to Express error handler
+const asyncHandler = (fn: any) => (req: any, res: any, next: any) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
 async function startServer() {
-  // Initialize file-based local database
-  initDB();
+  // Initialize connection and tables
+  await initDB();
 
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -55,13 +61,13 @@ async function startServer() {
   // AUTHENTICATION ENDPOINTS
   // ==========================================
 
-  app.post('/api/auth/signup', (req, res) => {
+  app.post('/api/auth/signup', asyncHandler(async (req, res) => {
     const { name, email, password, role } = req.body;
     if (!name || !email || !password || !role) {
       return res.status(400).json({ error: 'Name, email, password, and role are required' });
     }
     
-    const existing = dbUsers.getByEmail(email);
+    const existing = await dbUsers.getByEmail(email);
     if (existing) {
       return res.status(400).json({ error: 'This email is already registered.' });
     }
@@ -81,7 +87,7 @@ async function startServer() {
       passwordHash: hashPassword(password)
     };
     
-    dbUsers.create(newUser);
+    await dbUsers.create(newUser);
     
     const token = generateToken({ id: uid, email, role: finalRole });
     res.json({
@@ -95,22 +101,22 @@ async function startServer() {
         createdAt: newUser.createdAt
       }
     });
-  });
+  }));
 
-  app.post('/api/auth/login', (req, res) => {
+  app.post('/api/auth/login', asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
     
-    const user = dbUsers.getByEmail(email);
+    const user = await dbUsers.getByEmail(email);
     if (!user || !verifyPassword(password, user.passwordHash)) {
       return res.status(400).json({ error: 'Invalid email or password.' });
     }
     
     // Auto upgrade to admin if Ashish
     if (email.toLowerCase() === 'ashishgupta75080@gmail.com' && user.role !== 'admin') {
-      dbUsers.update(user.id, { role: 'admin' });
+      await dbUsers.update(user.id, { role: 'admin' });
       user.role = 'admin';
     }
     
@@ -127,10 +133,10 @@ async function startServer() {
         createdAt: user.createdAt
       }
     });
-  });
+  }));
 
-  app.get('/api/auth/profile', authenticateToken, (req, res) => {
-    const user = dbUsers.getById(req.user.id);
+  app.get('/api/auth/profile', authenticateToken, asyncHandler(async (req, res) => {
+    const user = await dbUsers.getById(req.user.id);
     if (!user) return res.status(404).json({ error: 'User profile not found.' });
     
     res.json({
@@ -142,15 +148,15 @@ async function startServer() {
       wishlist: user.wishlist || [],
       createdAt: user.createdAt
     });
-  });
+  }));
 
-  app.post('/api/auth/profile/update', authenticateToken, (req, res) => {
+  app.post('/api/auth/profile/update', authenticateToken, asyncHandler(async (req, res) => {
     const { name, address } = req.body;
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (address !== undefined) updateData.address = address;
 
-    const updated = dbUsers.update(req.user.id, updateData);
+    const updated = await dbUsers.update(req.user.id, updateData);
     if (!updated) return res.status(404).json({ error: 'User profile not found.' });
 
     res.json({
@@ -162,15 +168,15 @@ async function startServer() {
       wishlist: updated.wishlist || [],
       createdAt: updated.createdAt
     });
-  });
+  }));
 
-  app.post('/api/auth/wishlist', authenticateToken, (req, res) => {
+  app.post('/api/auth/wishlist', authenticateToken, asyncHandler(async (req, res) => {
     const { wishlist } = req.body;
     if (!Array.isArray(wishlist)) {
       return res.status(400).json({ error: 'Wishlist must be an array of product IDs' });
     }
     
-    const updated = dbUsers.update(req.user.id, { wishlist });
+    const updated = await dbUsers.update(req.user.id, { wishlist });
     if (!updated) return res.status(404).json({ error: 'User profile not found.' });
     
     res.json({
@@ -181,33 +187,34 @@ async function startServer() {
       wishlist: updated.wishlist || [],
       createdAt: updated.createdAt
     });
-  });
+  }));
 
-  app.get('/api/wishlist', authenticateToken, (req, res) => {
-    const user = dbUsers.getById(req.user.id);
+  app.get('/api/wishlist', authenticateToken, asyncHandler(async (req, res) => {
+    const user = await dbUsers.getById(req.user.id);
     if (!user) return res.status(404).json({ error: 'User profile not found.' });
     
     const wishlistIds = user.wishlist || [];
-    const products = wishlistIds.map(id => dbProducts.getById(id)).filter(Boolean);
+    const productPromises = wishlistIds.map(id => dbProducts.getById(id));
+    const products = (await Promise.all(productPromises)).filter((p): p is Product => !!p);
     res.json(products);
-  });
+  }));
 
   // ==========================================
   // PRODUCTS ENDPOINTS
   // ==========================================
 
-  app.get('/api/products', (req, res) => {
-    const products = dbProducts.getAll();
+  app.get('/api/products', asyncHandler(async (req, res) => {
+    const products = await dbProducts.getAll();
     res.json(products);
-  });
+  }));
 
-  app.get('/api/products/:id', (req, res) => {
-    const product = dbProducts.getById(req.params.id);
+  app.get('/api/products/:id', asyncHandler(async (req, res) => {
+    const product = await dbProducts.getById(req.params.id);
     if (!product) return res.status(404).json({ error: 'Product not found.' });
     res.json(product);
-  });
+  }));
 
-  app.post('/api/products', authenticateToken, requireAdmin, (req, res) => {
+  app.post('/api/products', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
     const { name, description, price, category, imageUrl, stock } = req.body;
     const newProduct = {
       id: 'prod_' + Math.random().toString(36).substring(2, 9),
@@ -221,54 +228,54 @@ async function startServer() {
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
-    dbProducts.create(newProduct);
+    await dbProducts.create(newProduct);
     res.json(newProduct);
-  });
+  }));
 
-  app.put('/api/products/:id', authenticateToken, requireAdmin, (req, res) => {
-    const updated = dbProducts.update(req.params.id, req.body);
+  app.put('/api/products/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
+    const updated = await dbProducts.update(req.params.id, req.body);
     if (!updated) return res.status(404).json({ error: 'Product not found.' });
     res.json(updated);
-  });
+  }));
 
-  app.delete('/api/products/:id', authenticateToken, requireAdmin, (req, res) => {
-    const deleted = dbProducts.delete(req.params.id);
+  app.delete('/api/products/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
+    const deleted = await dbProducts.delete(req.params.id);
     if (!deleted) return res.status(404).json({ error: 'Product not found.' });
     res.json({ success: true });
-  });
+  }));
 
-  app.post('/api/products/seed', authenticateToken, requireAdmin, (req, res) => {
-    seedDemoProducts();
-    res.json({ success: true, products: dbProducts.getAll() });
-  });
+  app.post('/api/products/seed', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
+    await seedDemoProducts();
+    res.json({ success: true, products: await dbProducts.getAll() });
+  }));
 
   // ==========================================
   // ORDERS ENDPOINTS
   // ==========================================
 
-  app.get('/api/orders', authenticateToken, (req, res) => {
+  app.get('/api/orders', authenticateToken, asyncHandler(async (req, res) => {
     if (req.user.role === 'admin') {
-      const orders = dbOrders.getAll().sort((a, b) => b.createdAt - a.createdAt);
+      const orders = (await dbOrders.getAll()).sort((a, b) => b.createdAt - a.createdAt);
       res.json(orders);
     } else {
-      const orders = dbOrders.getByUserId(req.user.id).sort((a, b) => b.createdAt - a.createdAt);
+      const orders = (await dbOrders.getByUserId(req.user.id)).sort((a, b) => b.createdAt - a.createdAt);
       res.json(orders);
     }
-  });
+  }));
 
-  app.post('/api/orders', authenticateToken, (req, res) => {
+  app.post('/api/orders', authenticateToken, asyncHandler(async (req, res) => {
     const orderData = req.body;
     
     // Decrement stock for purchased items
     for (const item of orderData.items) {
-      const prod = dbProducts.getById(item.productId);
+      const prod = await dbProducts.getById(item.productId);
       if (prod) {
         const newStock = Math.max(0, prod.stock - item.quantity);
-        dbProducts.update(item.productId, { stock: newStock });
+        await dbProducts.update(item.productId, { stock: newStock });
       }
     }
     
-    const userProfile = dbUsers.getById(req.user.id);
+    const userProfile = await dbUsers.getById(req.user.id);
     const userName = userProfile?.name || orderData.userName || req.user.email?.split('@')[0] || 'User';
     
     const newOrder = {
@@ -279,33 +286,33 @@ async function startServer() {
       createdAt: Date.now()
     };
     
-    dbOrders.create(newOrder);
+    await dbOrders.create(newOrder);
     res.json(newOrder);
-  });
+  }));
 
-  app.put('/api/orders/:id', authenticateToken, requireAdmin, (req, res) => {
+  app.put('/api/orders/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
     const { status } = req.body;
-    const updated = dbOrders.update(req.params.id, { status });
+    const updated = await dbOrders.update(req.params.id, { status });
     if (!updated) return res.status(404).json({ error: 'Order not found.' });
     res.json(updated);
-  });
+  }));
 
   // ==========================================
   // REVIEWS ENDPOINTS
   // ==========================================
 
-  app.get('/api/reviews/:productId', (req, res) => {
-    const reviews = dbReviews.getByProductId(req.params.productId);
+  app.get('/api/reviews/:productId', asyncHandler(async (req, res) => {
+    const reviews = await dbReviews.getByProductId(req.params.productId);
     res.json(reviews.sort((a, b) => b.createdAt - a.createdAt));
-  });
+  }));
 
-  app.post('/api/reviews', authenticateToken, (req, res) => {
+  app.post('/api/reviews', authenticateToken, asyncHandler(async (req, res) => {
     const { productId, rating, comment } = req.body;
     if (!productId || rating === undefined || !comment) {
       return res.status(400).json({ error: 'productId, rating, and comment are required.' });
     }
     
-    const userProfile = dbUsers.getById(req.user.id);
+    const userProfile = await dbUsers.getById(req.user.id);
     const userName = userProfile?.name || req.user.email?.split('@')[0] || 'User';
     
     const newReview = {
@@ -318,21 +325,21 @@ async function startServer() {
       createdAt: Date.now()
     };
     
-    dbReviews.create(newReview);
+    await dbReviews.create(newReview);
     res.json(newReview);
-  });
+  }));
 
-  app.delete('/api/reviews/:id', authenticateToken, (req, res) => {
-    const review = dbReviews.getById(req.params.id);
+  app.delete('/api/reviews/:id', authenticateToken, asyncHandler(async (req, res) => {
+    const review = await dbReviews.getById(req.params.id);
     if (!review) return res.status(404).json({ error: 'Review not found.' });
     
     if (review.userId !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Access Denied: Unauthorized to delete this review.' });
     }
     
-    dbReviews.delete(req.params.id);
+    await dbReviews.delete(req.params.id);
     res.json({ success: true });
-  });
+  }));
 
   // ==========================================
   // ORIGINAL MOCKS & VITE
@@ -351,7 +358,7 @@ async function startServer() {
   });
 
   // Example Email Confirmation Endpoint
-  app.post('/api/send-email', async (req, res) => {
+  app.post('/api/send-email', asyncHandler(async (req, res) => {
     const { email, orderId, totalAmount } = req.body;
     try {
       if (process.env.RESEND_API_KEY) {
@@ -380,7 +387,7 @@ async function startServer() {
       console.error('Failed to send email:', err);
       res.status(500).json({ error: 'Failed to send email' });
     }
-  });
+  }));
 
   // In production, serve the frontend static files
   if (process.env.NODE_ENV === 'production') {
@@ -391,10 +398,15 @@ async function startServer() {
     });
   }
 
+  // Express global error handling middleware to return clean JSON errors (avoids HTML parse errors on client)
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error("Unhandled server error:", err);
+    res.status(500).json({ error: err.message || 'Internal Server Error' });
+  });
+
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
   });
 }
 
 startServer();
-
