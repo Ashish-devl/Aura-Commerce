@@ -91,3 +91,6 @@ Open your browser and navigate to:
 You can register your own account or log in instantly using the pre-seeded accounts:
 - **Demo Admin Email**: `admin@aura.demo` (Password: `admin123`)
 - **Demo Customer Email**: `customer@aura.demo` (Password: `customer123`)
+
+
+## Live Link : https://aura-commerce-txyy.onrender.com
