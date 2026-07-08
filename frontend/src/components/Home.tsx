@@ -1,16 +1,88 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Product } from '../types';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { formatCurrency } from '../lib/utils';
 import { Search } from 'lucide-react';
 import { motion } from 'framer-motion';
+
+function getLevenshteinDistance(a: string, b: string): number {
+  const tmp = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) tmp[i][0] = i;
+  for (let j = 0; j <= b.length; j++) tmp[0][j] = j;
+
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      if (a[i - 1] === b[j - 1]) {
+        tmp[i][j] = tmp[i - 1][j - 1];
+      } else {
+        tmp[i][j] = Math.min(
+          tmp[i - 1][j] + 1,
+          tmp[i][j - 1] + 1,
+          tmp[i - 1][j - 1] + 1
+        );
+      }
+    }
+  }
+  return tmp[a.length][b.length];
+}
+
+function isSubsequence(text: string, query: string): boolean {
+  if (!query) return true;
+  let qIdx = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === query[qIdx]) {
+      qIdx++;
+      if (qIdx === query.length) return true;
+    }
+  }
+  return false;
+}
+
+function isFuzzyMatch(target: string, query: string): boolean {
+  const term = query.toLowerCase().trim();
+  if (!term) return true;
+  
+  const text = target.toLowerCase();
+  
+  // 1. Direct substring match
+  if (text.includes(term)) return true;
+  
+  // 2. Subsequence match (for missing characters)
+  if (isSubsequence(text, term)) return true;
+  
+  // 3. Word-level Levenshtein match (for typos)
+  const targetWords = text.split(/\s+/).filter(Boolean);
+  const queryWords = term.split(/\s+/).filter(Boolean);
+  
+  return queryWords.every(qw => {
+    return targetWords.some(tw => {
+      if (tw.includes(qw)) return true;
+      const distance = getLevenshteinDistance(qw, tw);
+      const threshold = qw.length <= 3 ? 1 : qw.length <= 6 ? 2 : 3;
+      return distance <= threshold;
+    });
+  });
+}
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [category, setCategory] = useState('All');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const category = searchParams.get('category') || 'All';
+  const subCategory = searchParams.get('sub') || '';
+
+  const setCategory = (newCat: string) => {
+    if (newCat === 'All') {
+      searchParams.delete('category');
+    } else {
+      searchParams.set('category', newCat);
+    }
+    searchParams.delete('sub');
+    setSearchParams(searchParams);
+  };
 
   useEffect(() => {
     api.getProducts()
@@ -24,12 +96,46 @@ export default function Home() {
       });
   }, []);
 
-  const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))];
+  useEffect(() => {
+    setSearchTerm('');
+  }, [category, subCategory]);
 
-  const filteredProducts = products.filter(p => 
-    (category === 'All' || p.category === category) &&
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))] as string[];
+
+  const filteredProducts = products.filter(p => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) {
+      const matchesCategory = category === 'All' || p.category === category;
+      return matchesCategory;
+    }
+
+    const categoriesList = ['accessories', 'footwear', 'men', 'women', 'kids', 'pants', 't-shirts', 'sweatshirts', 'outerwear', 'activewear'];
+    const matchedGlobalCategory = categoriesList.find(cat => isFuzzyMatch(cat, term));
+
+    const matchesCategory = 
+      category === 'All' || 
+      p.category === category ||
+      (!!matchedGlobalCategory && p.category.toLowerCase().includes(matchedGlobalCategory));
+    
+    let matchesSub = true;
+    if (subCategory === 'Shirts') {
+      const nameLower = p.name.toLowerCase();
+      matchesSub = nameLower.includes('shirt') || nameLower.includes('tee') || nameLower.includes('hoodie') || nameLower.includes('sweater') || nameLower.includes('jacket');
+    } else if (subCategory === 'Pants') {
+      const nameLower = p.name.toLowerCase();
+      matchesSub = nameLower.includes('pant') || nameLower.includes('denim') || nameLower.includes('shorts') || nameLower.includes('chinos') || nameLower.includes('trouser');
+    } else if (subCategory === 'Accessories') {
+      const nameLower = p.name.toLowerCase();
+      matchesSub = nameLower.includes('bag') || nameLower.includes('cap') || nameLower.includes('socks') || nameLower.includes('backpack') || nameLower.includes('hat') || p.category === 'Accessories';
+    }
+    
+    const matchesSearch = 
+      isFuzzyMatch(p.name, term) ||
+      isFuzzyMatch(p.description, term) ||
+      isFuzzyMatch(p.category, term);
+    
+    return matchesCategory && matchesSub && matchesSearch;
+  });
 
   return (
     <div className="space-y-8">
@@ -44,16 +150,30 @@ export default function Home() {
 
       {/* Filters & Search */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="flex space-x-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
+        <div className="flex items-center space-x-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
           {categories.map(c => (
             <button
               key={c}
               onClick={() => setCategory(c)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${category === c ? 'bg-black text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'}`}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${category === c && !subCategory ? 'bg-black text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'}`}
             >
               {c}
             </button>
           ))}
+          {subCategory && (
+            <span className="inline-flex items-center bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
+              {subCategory}
+              <button 
+                onClick={() => {
+                  searchParams.delete('sub');
+                  setSearchParams(searchParams);
+                }}
+                className="ml-1.5 hover:text-indigo-900 font-bold"
+              >
+                &times;
+              </button>
+            </span>
+          )}
         </div>
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
