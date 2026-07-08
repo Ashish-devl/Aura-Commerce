@@ -122,8 +122,9 @@ export const api = {
   },
 
   // Orders
-  async getOrders() {
-    const res = await fetch('/api/orders', {
+  async getOrders(startDate?: number) {
+    const url = startDate ? `/api/orders?startDate=${startDate}` : '/api/orders';
+    const res = await fetch(url, {
       method: 'GET',
       headers: getHeaders()
     });

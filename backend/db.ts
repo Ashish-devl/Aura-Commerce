@@ -321,8 +321,16 @@ export const dbOrders = {
     const res = await pool.query('SELECT * FROM orders');
     return res.rows.map(mapOrderFromDB);
   },
+  getAllAfter: async (startTimestamp: number): Promise<Order[]> => {
+    const res = await pool.query('SELECT * FROM orders WHERE created_at >= $1', [startTimestamp]);
+    return res.rows.map(mapOrderFromDB);
+  },
   getByUserId: async (userId: string): Promise<Order[]> => {
     const res = await pool.query('SELECT * FROM orders WHERE user_id = $1', [userId]);
+    return res.rows.map(mapOrderFromDB);
+  },
+  getByUserIdAfter: async (userId: string, startTimestamp: number): Promise<Order[]> => {
+    const res = await pool.query('SELECT * FROM orders WHERE user_id = $1 AND created_at >= $2', [userId, startTimestamp]);
     return res.rows.map(mapOrderFromDB);
   },
   getById: async (id: string): Promise<Order | undefined> => {

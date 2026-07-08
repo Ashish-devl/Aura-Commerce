@@ -254,11 +254,20 @@ async function startServer() {
   // ==========================================
 
   app.get('/api/orders', authenticateToken, asyncHandler(async (req, res) => {
+    const { startDate } = req.query;
+    const startTimestamp = startDate ? parseInt(startDate as string, 10) : undefined;
+
     if (req.user.role === 'admin') {
-      const orders = (await dbOrders.getAll()).sort((a, b) => b.createdAt - a.createdAt);
+      const orders = startTimestamp 
+        ? await dbOrders.getAllAfter(startTimestamp) 
+        : await dbOrders.getAll();
+      orders.sort((a, b) => b.createdAt - a.createdAt);
       res.json(orders);
     } else {
-      const orders = (await dbOrders.getByUserId(req.user.id)).sort((a, b) => b.createdAt - a.createdAt);
+      const orders = startTimestamp 
+        ? await dbOrders.getByUserIdAfter(req.user.id, startTimestamp) 
+        : await dbOrders.getByUserId(req.user.id);
+      orders.sort((a, b) => b.createdAt - a.createdAt);
       res.json(orders);
     }
   }));
