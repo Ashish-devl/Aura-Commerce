@@ -7,7 +7,6 @@ import {
   dbProducts, 
   dbOrders, 
   dbReviews, 
-  seedDemoProducts, 
   generateToken, 
   verifyPassword, 
   hashPassword 
@@ -215,7 +214,7 @@ async function startServer() {
   }));
 
   app.post('/api/products', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-    const { name, description, price, category, imageUrl, stock } = req.body;
+    const { name, description, price, category, subCategory, imageUrl, stock } = req.body;
     const newProduct = {
       id: 'prod_' + Math.random().toString(36).substring(2, 9),
       name,
@@ -223,6 +222,7 @@ async function startServer() {
       price: Number(price),
       currency: 'INR',
       category,
+      subCategory: subCategory || '',
       imageUrl,
       stock: Number(stock),
       createdAt: Date.now(),
@@ -244,10 +244,6 @@ async function startServer() {
     res.json({ success: true });
   }));
 
-  app.post('/api/products/seed', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-    await seedDemoProducts();
-    res.json({ success: true, products: await dbProducts.getAll() });
-  }));
 
   // ==========================================
   // ORDERS ENDPOINTS

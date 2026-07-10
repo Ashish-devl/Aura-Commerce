@@ -67,6 +67,11 @@ export const pool = new Pool({
   ssl: connectionString ? { rejectUnauthorized: false } : false
 });
 
+// Prevent unhandled error events from crashing the process when idle clients are closed by Neon/Postgres
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+});
+
 // Interface for Users in backend database (UserProfile + password hash)
 export interface DBUser extends UserProfile {
   passwordHash: string;
@@ -94,6 +99,7 @@ function mapProductFromDB(row: any): Product {
     price: Number(row.price),
     currency: row.currency,
     category: row.category,
+    subCategory: row.sub_category || '',
     imageUrl: row.image_url,
     stock: Number(row.stock),
     createdAt: Number(row.created_at),
@@ -162,6 +168,11 @@ export async function initDB() {
       created_at BIGINT NOT NULL,
       updated_at BIGINT NOT NULL
     );
+  `);
+
+  // Ensure sub_category column exists
+  await pool.query(`
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS sub_category VARCHAR(100) DEFAULT '';
   `);
 
   // Create Orders table
@@ -263,10 +274,10 @@ export const dbProducts = {
   },
   create: async (product: Product): Promise<Product> => {
     const res = await pool.query(
-      `INSERT INTO products (id, name, description, price, currency, category, image_url, stock, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO products (id, name, description, price, currency, category, sub_category, image_url, stock, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
-      [product.id, product.name, product.description, product.price, product.currency, product.category, product.imageUrl, product.stock, product.createdAt, product.updatedAt]
+      [product.id, product.name, product.description, product.price, product.currency, product.category, product.subCategory || '', product.imageUrl, product.stock, product.createdAt, product.updatedAt]
     );
     return mapProductFromDB(res.rows[0]);
   },
@@ -289,6 +300,10 @@ export const dbProducts = {
     if (updates.category !== undefined) {
       fields.push(`category = $${index++}`);
       values.push(updates.category);
+    }
+    if (updates.subCategory !== undefined) {
+      fields.push(`sub_category = $${index++}`);
+      values.push(updates.subCategory);
     }
     if (updates.imageUrl !== undefined) {
       fields.push(`image_url = $${index++}`);
@@ -419,53 +434,6 @@ export async function seedDefaultData() {
       wishlist: [],
       createdAt: Date.now(),
       passwordHash: hashPassword('customer123')
-    });
-  }
-
-  const productsRes = await pool.query('SELECT COUNT(*) FROM products');
-  const productCount = parseInt(productsRes.rows[0].count, 10);
-  
-  if (productCount === 0) {
-    await seedDemoProducts();
-  }
-}
-
-export async function seedDemoProducts() {
-  const demoTemplates = [
-    { name: "Classic White Tee", category: "T-Shirts", item: "T-Shirt", image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800", price: 1499 },
-    { name: "Urban Winter Jacket", category: "Outerwear", item: "Jacket", image: "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?auto=format&fit=crop&q=80&w=800", price: 4599 },
-    { name: "Essential Grey Hoodie", category: "Sweatshirts", item: "Hoodie", image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=800", price: 2999 },
-    { name: "Premium Blue Denim", category: "Pants", item: "Jeans", image: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800", price: 3499 },
-    { name: "Vintage Leather Backpack", category: "Accessories", item: "Backpack", image: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&q=80&w=800", price: 5999 },
-    { name: "Activewear Running Shorts", category: "Activewear", item: "Shorts", image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=800", price: 1299 },
-    { name: "Casual Striped Sweater", category: "Sweatshirts", item: "Sweater", image: "https://images.unsplash.com/photo-1434389651855-32eab9eeea86?auto=format&fit=crop&q=80&w=800", price: 2499 },
-    { name: "Sleek Black Cap", category: "Accessories", item: "Cap", image: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&q=80&w=800", price: 899 },
-    { name: "Cozy Knit Socks", category: "Accessories", item: "Socks", image: "https://images.unsplash.com/photo-1582966772680-860e372bb558?auto=format&fit=crop&q=80&w=800", price: 499 },
-    { name: "Modern Chino Pants", category: "Pants", item: "Chinos", image: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&q=80&w=800", price: 2799 },
-    { name: "Graphic Print Tee", category: "T-Shirts", item: "T-Shirt", image: "https://images.unsplash.com/photo-1503342394128-c104d54dba01?auto=format&fit=crop&q=80&w=800", price: 1699 },
-    { name: "Windbreaker Pullover", category: "Outerwear", item: "Windbreaker", image: "https://images.unsplash.com/photo-1605518216938-7c31b7b14ad0?auto=format&fit=crop&q=80&w=800", price: 3299 }
-  ];
-
-  // Clear products table
-  await pool.query('TRUNCATE TABLE products CASCADE');
-
-  // Generate 36 products by cloning the templates and slightly varying them
-  for (let i = 0; i < 36; i++) {
-    const template = demoTemplates[i % demoTemplates.length];
-    const isDuplicate = i >= demoTemplates.length;
-    const variantSuffix = isDuplicate ? ` (Variant ${Math.floor(i / demoTemplates.length) + 1})` : '';
-    
-    await dbProducts.create({
-      id: `prod_${i + 1}`,
-      name: `${template.name}${variantSuffix}`,
-      description: `A quality ${template.item.toLowerCase()} perfect for any occasion. Designed with comfort in mind.`,
-      price: template.price,
-      currency: 'INR',
-      category: template.category,
-      imageUrl: template.image,
-      stock: Math.floor(Math.random() * 100) + 10,
-      createdAt: Date.now() - (36 - i) * 60 * 60 * 1000,
-      updatedAt: Date.now()
     });
   }
 }

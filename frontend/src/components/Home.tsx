@@ -65,6 +65,110 @@ function isFuzzyMatch(target: string, query: string): boolean {
   });
 }
 
+function productMatchesCategoryAndSub(
+  p: Product,
+  activeCategory: string,
+  activeSub: string
+): boolean {
+  const normCategory = activeCategory.trim();
+  const normSub = activeSub.trim().toLowerCase();
+
+  // Determine if product is a legacy seeded product
+  const isLegacy = ['t-shirts', 'outerwear', 'sweatshirts', 'pants', 'activewear'].includes(p.category.toLowerCase()) || 
+                   (p.category === 'Accessories' && !p.subCategory);
+
+  // 1. Check Category Match
+  let matchesCategory = false;
+  if (normCategory === 'All') {
+    matchesCategory = true;
+  } else if (normCategory === 'Men' || normCategory === 'Women' || normCategory === 'Kids') {
+    if (p.category === normCategory) {
+      matchesCategory = true;
+    } else if (isLegacy) {
+      matchesCategory = true;
+    }
+  } else if (normCategory === 'Accessories') {
+    matchesCategory = p.category === 'Accessories' || (p.subCategory || '').toLowerCase().trim() === 'accessories';
+  } else if (normCategory === 'Footwear') {
+    const pSub = (p.subCategory || '').toLowerCase().trim();
+    const isFootwearSub = ['sneakers', 'formal', 'casual', 'others', 'footwear'].includes(pSub);
+    matchesCategory = p.category === 'Footwear' || isFootwearSub;
+  } else {
+    matchesCategory = p.category === normCategory;
+  }
+
+  if (!matchesCategory) return false;
+
+  // 2. Check Subcategory Match
+  if (!activeSub) return true;
+
+  const productSub = (p.subCategory || '').toLowerCase().trim();
+
+  // If the product is not legacy and has a specific subCategory, check direct match first
+  if (!isLegacy && p.subCategory) {
+    const matchesDirectly = 
+      productSub === normSub ||
+      (normSub === 'shirts' && productSub === 'shirts & tops') ||
+      (normSub === 'pants' && productSub === 'pants & jeans') ||
+      (normSub === 'formal' && productSub === 'formal shoes') ||
+      (normSub === 'casual' && productSub === 'casual shoes') ||
+      (productSub !== '' && (productSub.includes(normSub) || normSub.includes(productSub)));
+      
+    if (matchesDirectly) return true;
+  }
+
+  // Fallback / legacy matching
+  const nameLower = p.name.toLowerCase();
+
+  if (normSub === 'shirts' || normSub === 'shirts & tops') {
+    const isShirtCat = ['t-shirts', 'outerwear', 'sweatshirts', 'activewear'].includes(p.category.toLowerCase());
+    const isShirtName = nameLower.includes('shirt') || nameLower.includes('tee') || nameLower.includes('hoodie') || nameLower.includes('sweater') || nameLower.includes('jacket');
+    return isShirtCat || isShirtName;
+  }
+
+  if (normSub === 'pants' || normSub === 'pants & jeans') {
+    const isPantsCat = p.category.toLowerCase() === 'pants';
+    const isPantsName = nameLower.includes('pant') || nameLower.includes('denim') || nameLower.includes('shorts') || nameLower.includes('chinos') || nameLower.includes('trouser');
+    return isPantsCat || isPantsName;
+  }
+
+  if (normSub === 'accessories') {
+    const isAccCat = p.category.toLowerCase() === 'accessories';
+    const isAccName = nameLower.includes('bag') || nameLower.includes('cap') || nameLower.includes('socks') || nameLower.includes('backpack') || nameLower.includes('hat');
+    return isAccCat || isAccName;
+  }
+
+  if (normSub === 'bags') {
+    return nameLower.includes('bag') || nameLower.includes('backpack');
+  }
+
+  if (normSub === 'caps') {
+    return nameLower.includes('cap') || nameLower.includes('hat');
+  }
+
+  if (normSub === 'socks') {
+    return nameLower.includes('socks');
+  }
+
+  if (normSub === 'sneakers') {
+    return nameLower.includes('sneaker') || nameLower.includes('shoe') || nameLower.includes('run');
+  }
+
+  if (normSub === 'formal') {
+    return nameLower.includes('formal') || nameLower.includes('oxford') || nameLower.includes('derby');
+  }
+
+  if (normSub === 'casual') {
+    return nameLower.includes('casual') || nameLower.includes('loafer') || nameLower.includes('sandal') || nameLower.includes('slip') || nameLower.includes('boot');
+  }
+
+  if (normSub === 'others') {
+    return true;
+  }
+
+  return false;
+}
+
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,42 +204,33 @@ export default function Home() {
     setSearchTerm('');
   }, [category, subCategory]);
 
-  const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))] as string[];
+  const categories = ['All', 'Men', 'Women', 'Kids', 'Accessories', 'Footwear'];
 
   const filteredProducts = products.filter(p => {
+    // 1 & 2. Category & Subcategory match
+    const matchesCatAndSub = productMatchesCategoryAndSub(p, category, subCategory);
+
+    // 3. Search term match
     const term = searchTerm.toLowerCase().trim();
-    if (!term) {
-      const matchesCategory = category === 'All' || p.category === category;
-      return matchesCategory;
+    let matchesSearch = true;
+    if (term) {
+      const categoriesList = ['accessories', 'footwear', 'men', 'women', 'kids', 'pants', 't-shirts', 'sweatshirts', 'outerwear', 'activewear'];
+      const matchedGlobalCategory = categoriesList.find(cat => isFuzzyMatch(cat, term));
+
+      const matchesSearchCategory = 
+        p.category.toLowerCase().includes(term) ||
+        (p.subCategory && p.subCategory.toLowerCase().includes(term)) ||
+        (!!matchedGlobalCategory && p.category.toLowerCase().includes(matchedGlobalCategory));
+
+      matchesSearch = 
+        isFuzzyMatch(p.name, term) ||
+        isFuzzyMatch(p.description, term) ||
+        matchesSearchCategory;
     }
 
-    const categoriesList = ['accessories', 'footwear', 'men', 'women', 'kids', 'pants', 't-shirts', 'sweatshirts', 'outerwear', 'activewear'];
-    const matchedGlobalCategory = categoriesList.find(cat => isFuzzyMatch(cat, term));
-
-    const matchesCategory = 
-      category === 'All' || 
-      p.category === category ||
-      (!!matchedGlobalCategory && p.category.toLowerCase().includes(matchedGlobalCategory));
-    
-    let matchesSub = true;
-    if (subCategory === 'Shirts') {
-      const nameLower = p.name.toLowerCase();
-      matchesSub = nameLower.includes('shirt') || nameLower.includes('tee') || nameLower.includes('hoodie') || nameLower.includes('sweater') || nameLower.includes('jacket');
-    } else if (subCategory === 'Pants') {
-      const nameLower = p.name.toLowerCase();
-      matchesSub = nameLower.includes('pant') || nameLower.includes('denim') || nameLower.includes('shorts') || nameLower.includes('chinos') || nameLower.includes('trouser');
-    } else if (subCategory === 'Accessories') {
-      const nameLower = p.name.toLowerCase();
-      matchesSub = nameLower.includes('bag') || nameLower.includes('cap') || nameLower.includes('socks') || nameLower.includes('backpack') || nameLower.includes('hat') || p.category === 'Accessories';
-    }
-    
-    const matchesSearch = 
-      isFuzzyMatch(p.name, term) ||
-      isFuzzyMatch(p.description, term) ||
-      isFuzzyMatch(p.category, term);
-    
-    return matchesCategory && matchesSub && matchesSearch;
+    return matchesCatAndSub && matchesSearch;
   });
+
 
   return (
     <div className="space-y-8">

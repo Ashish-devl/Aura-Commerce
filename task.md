@@ -1,0 +1,10 @@
+- [x] Update Types in backend and frontend
+  - [x] backend/types.ts
+  - [x] frontend/src/types.ts
+- [x] Update Database Schema and queries in backend
+  - [x] backend/db.ts: Add column check/alter logic to initDB, update mapProductFromDB, create and update functions
+- [x] Update Backend Server endpoints
+  - [x] backend/server.ts: Update POST /api/products route to support subCategory
+- [x] Update Frontend Components
+  - [x] frontend/src/components/AdminDashboard.tsx: Add subcategories map, add subCategory state, add dropdown to form, display subcategory in products list
+  - [x] frontend/src/components/Home.tsx: Update filtering logic to use product.subCategory correctly

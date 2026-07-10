@@ -19,6 +19,14 @@ const getStartDate = (range: '7days' | 'month' | 'year') => {
   return d;
 };
 
+const SUBCATEGORIES_MAP: Record<string, string[]> = {
+  Men: ['Shirts & Tops', 'Pants & Jeans', 'Accessories'],
+  Women: ['Shirts & Tops', 'Pants & Jeans', 'Accessories'],
+  Kids: ['Shirts & Tops', 'Pants & Jeans', 'Accessories'],
+  Accessories: ['Bags', 'Caps', 'Socks', 'Others'],
+  Footwear: ['Sneakers', 'Formal', 'Casual', 'Others']
+};
+
 export default function AdminDashboard() {
   const { profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -34,6 +42,7 @@ export default function AdminDashboard() {
   const [desc, setDesc] = useState('');
   const [price, setPrice] = useState<number>(0);
   const [category, setCategory] = useState('Men');
+  const [subCategory, setSubCategory] = useState('Shirts & Tops');
   const [imageUrl, setImageUrl] = useState('');
   const [stock, setStock] = useState<number>(0);
 
@@ -88,12 +97,13 @@ export default function AdminDashboard() {
         description: desc,
         price,
         category,
+        subCategory,
         imageUrl,
         stock
       };
       const newProd = await api.addProduct(data);
       setProducts([newProd, ...products]);
-      setName(''); setDesc(''); setPrice(0); setCategory('Men'); setImageUrl(''); setStock(0);
+      setName(''); setDesc(''); setPrice(0); setCategory('Men'); setSubCategory('Shirts & Tops'); setImageUrl(''); setStock(0);
     } catch (err) {
       console.error(err);
     }
@@ -617,7 +627,12 @@ export default function AdminDashboard() {
                 <select 
                   required 
                   value={category} 
-                  onChange={e=>setCategory(e.target.value)} 
+                  onChange={e => {
+                    const newCat = e.target.value;
+                    setCategory(newCat);
+                    const subOptions = SUBCATEGORIES_MAP[newCat] || [];
+                    setSubCategory(subOptions[0] || '');
+                  }} 
                   className="w-full rounded-lg border-slate-200 py-2 sm:text-sm focus:ring-black focus:border-black bg-white"
                 >
                   <option value="Men">Men</option>
@@ -625,6 +640,19 @@ export default function AdminDashboard() {
                   <option value="Kids">Kids</option>
                   <option value="Accessories">Accessories</option>
                   <option value="Footwear">Footwear</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Subcategory</label>
+                <select 
+                  required 
+                  value={subCategory} 
+                  onChange={e => setSubCategory(e.target.value)} 
+                  className="w-full rounded-lg border-slate-200 py-2 sm:text-sm focus:ring-black focus:border-black bg-white"
+                >
+                  {(SUBCATEGORIES_MAP[category] || []).map(sub => (
+                    <option key={sub} value={sub}>{sub}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -720,7 +748,7 @@ export default function AdminDashboard() {
                       <img src={product.imageUrl} className="w-10 h-10 rounded-md object-cover bg-slate-200" alt="" />
                       <div>
                         <p className="font-medium text-slate-900 line-clamp-1">{product.name}</p>
-                        <p className="text-xs text-slate-500">{product.category}</p>
+                        <p className="text-xs text-slate-500">{product.category} {product.subCategory ? `• ${product.subCategory}` : ''}</p>
                       </div>
                     </div>
                   </td>

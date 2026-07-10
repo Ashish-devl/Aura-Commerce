@@ -27,10 +27,10 @@ export default function Layout() {
                     Men <ChevronDown className="w-3.5 h-3.5 ml-1" />
                   </Link>
                   <div className="absolute left-0 top-[calc(100%-12px)] w-44 bg-white border border-slate-100 shadow-md rounded-xl py-2 hidden group-hover:block z-50">
-                    <Link to="/?category=Men&sub=Shirts" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
+                    <Link to="/?category=Men&sub=Shirts%20%26%20Tops" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
                       Shirts & Tops
                     </Link>
-                    <Link to="/?category=Men&sub=Pants" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
+                    <Link to="/?category=Men&sub=Pants%20%26%20Jeans" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
                       Pants & Jeans
                     </Link>
                     <Link to="/?category=Men&sub=Accessories" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
@@ -45,10 +45,10 @@ export default function Layout() {
                     Women <ChevronDown className="w-3.5 h-3.5 ml-1" />
                   </Link>
                   <div className="absolute left-0 top-[calc(100%-12px)] w-44 bg-white border border-slate-100 shadow-md rounded-xl py-2 hidden group-hover:block z-50">
-                    <Link to="/?category=Women&sub=Shirts" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
+                    <Link to="/?category=Women&sub=Shirts%20%26%20Tops" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
                       Shirts & Tops
                     </Link>
-                    <Link to="/?category=Women&sub=Pants" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
+                    <Link to="/?category=Women&sub=Pants%20%26%20Jeans" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
                       Pants & Jeans
                     </Link>
                     <Link to="/?category=Women&sub=Accessories" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
@@ -63,10 +63,10 @@ export default function Layout() {
                     Kids <ChevronDown className="w-3.5 h-3.5 ml-1" />
                   </Link>
                   <div className="absolute left-0 top-[calc(100%-12px)] w-44 bg-white border border-slate-100 shadow-md rounded-xl py-2 hidden group-hover:block z-50">
-                    <Link to="/?category=Kids&sub=Shirts" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
+                    <Link to="/?category=Kids&sub=Shirts%20%26%20Tops" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
                       Shirts & Tops
                     </Link>
-                    <Link to="/?category=Kids&sub=Pants" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
+                    <Link to="/?category=Kids&sub=Pants%20%26%20Jeans" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
                       Pants & Jeans
                     </Link>
                     <Link to="/?category=Kids&sub=Accessories" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
@@ -76,14 +76,46 @@ export default function Layout() {
                 </div>
 
                 {/* Accessories */}
-                <Link to="/?category=Accessories" className="text-slate-600 hover:text-black font-semibold text-sm transition-colors uppercase tracking-wider">
-                  Accessories
-                </Link>
+                <div className="relative group h-full flex items-center">
+                  <Link to="/?category=Accessories" className="text-slate-600 hover:text-black font-semibold text-sm transition-colors uppercase tracking-wider py-5 flex items-center">
+                    Accessories <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                  </Link>
+                  <div className="absolute left-0 top-[calc(100%-12px)] w-44 bg-white border border-slate-100 shadow-md rounded-xl py-2 hidden group-hover:block z-50">
+                    <Link to="/?category=Accessories&sub=Bags" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
+                      Bags
+                    </Link>
+                    <Link to="/?category=Accessories&sub=Caps" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
+                      Caps
+                    </Link>
+                    <Link to="/?category=Accessories&sub=Socks" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
+                      Socks
+                    </Link>
+                    <Link to="/?category=Accessories&sub=Others" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
+                      Others
+                    </Link>
+                  </div>
+                </div>
 
                 {/* Footwear */}
-                <Link to="/?category=Footwear" className="text-slate-600 hover:text-black font-semibold text-sm transition-colors uppercase tracking-wider">
-                  Footwear
-                </Link>
+                <div className="relative group h-full flex items-center">
+                  <Link to="/?category=Footwear" className="text-slate-600 hover:text-black font-semibold text-sm transition-colors uppercase tracking-wider py-5 flex items-center">
+                    Footwear <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                  </Link>
+                  <div className="absolute left-0 top-[calc(100%-12px)] w-44 bg-white border border-slate-100 shadow-md rounded-xl py-2 hidden group-hover:block z-50">
+                    <Link to="/?category=Footwear&sub=Sneakers" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
+                      Sneakers
+                    </Link>
+                    <Link to="/?category=Footwear&sub=Formal" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
+                      Formal Shoes
+                    </Link>
+                    <Link to="/?category=Footwear&sub=Casual" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
+                      Casual Shoes
+                    </Link>
+                    <Link to="/?category=Footwear&sub=Others" className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-black rounded-lg mx-1 transition-colors">
+                      Others
+                    </Link>
+                  </div>
+                </div>
               </nav>
             </div>
             
